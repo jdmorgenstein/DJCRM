@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+{% block title %}{{ label.name }} — DJ CRM{% endblock %}
+{% block content %}
+
+<div class="page-header d-flex justify-content-between align-items-center">
+  <div>
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb mb-1">
+        <li class="breadcrumb-item"><a href="{% url 'crm:label_list' %}" class="text-muted">Labels</a></li>
+        <li class="breadcrumb-item active">{{ label.name }}</li>
+      </ol>
+    </nav>
+    <h1 class="h3 mb-0">{{ label.name }}</h1>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{% url 'crm:submission_create' %}?label={{ label.pk }}" class="btn btn-accent">
+      <i class="bi bi-send me-1"></i>Log Submission
+    </a>
+    <a href="{% url 'crm:label_edit' label.pk %}" class="btn btn-outline-secondary">
+      <i class="bi bi-pencil me-1"></i>Edit
+    </a>
+    <a href="{% url 'crm:label_delete' label.pk %}" class="btn btn-outline-danger">
+      <i class="bi bi-trash"></i>
+    </a>
+  </div>
+</div>
+
+<div class="row g-4">
+  <!-- Label info -->
+  <div class="col-md-4">
+    <div class="card p-3 mb-3">
+      <h6 class="text-muted text-uppercase small mb-3">Label Info</h6>
+      <dl class="mb-0">
+        <dt class="text-muted small">Genre</dt>
+        <dd><span class="badge bg-secondary">{{ label.get_genre_display }}</span></dd>
+
+        {% if label.contact_name %}
+        <dt class="text-muted small mt-2">Contact</dt>
+        <dd>{{ label.contact_name }}</dd>
+        {% endif %}
+
+        {% if label.email %}
+        <dt class="text-muted small mt-2">Email</dt>
+        <dd><a href="mailto:{{ label.email }}" class="text-decoration-none">{{ label.email }}</a></dd>
+        {% endif %}
+
+        {% if label.website %}
+        <dt class="text-muted small mt-2">Website</dt>
+        <dd><a href="{{ label.website }}" target="_blank" class="text-decoration-none">{{ label.website }}</a></dd>
+        {% endif %}
+
+        {% if label.instagram %}
+        <dt class="text-muted small mt-2">Instagram</dt>
+        <dd>{{ label.instagram }}</dd>
+        {% endif %}
+
+        {% if label.soundcloud %}
+        <dt class="text-muted small mt-2">SoundCloud</dt>
+        <dd>{{ label.soundcloud }}</dd>
+        {% endif %}
+
+        {% if label.demo_submission_url %}
+        <dt class="text-muted small mt-2">Demo Portal</dt>
+        <dd><a href="{{ label.demo_submission_url }}" target="_blank" class="btn btn-sm btn-outline-secondary">
+          <i class="bi bi-upload me-1"></i>Submit Demo
+        </a></dd>
+        {% endif %}
+      </dl>
+    </div>
+
+    {% if label.notes %}
+    <div class="card p-3">
+      <h6 class="text-muted text-uppercase small mb-2">Notes</h6>
+      <p class="mb-0 small" style="white-space:pre-wrap;">{{ label.notes }}</p>
+    </div>
+    {% endif %}
+
+    <div class="card p-3 mt-3">
+      <h6 class="text-muted text-uppercase small mb-2">Stats</h6>
+      <div class="d-flex gap-3">
+        <div class="text-center">
+          <div class="fw-bold" style="color:var(--accent-light);">{{ label.submission_count }}</div>
+          <div class="text-muted small">Total</div>
+        </div>
+        <div class="text-center">
+          <div class="fw-bold" style="color:#34d399;">{{ label.accepted_count }}</div>
+          <div class="text-muted small">Accepted</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Submissions -->
+  <div class="col-md-8">
+    <div class="card p-3">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="mb-0"><i class="bi bi-send me-2"></i>Submissions to this label</h5>
+        <a href="{% url 'crm:submission_create' %}?label={{ label.pk }}" class="btn btn-sm btn-accent">
+          <i class="bi bi-plus-lg"></i>
+        </a>
+      </div>
+      {% if submissions %}
+      <table class="table table-hover mb-0">
+        <thead class="table-dark">
+          <tr>
+            <th>Track</th>
+            <th>Submitted</th>
+            <th>Status</th>
+            <th>Response</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for s in submissions %}
+          <tr>
+            <td>
+              <a href="{% url 'crm:track_detail' s.track.pk %}" class="text-decoration-none text-light">
+                {{ s.track.title }}
+              </a>
+              <div class="text-muted small">{{ s.track.get_genre_display }}</div>
+            </td>
+            <td class="text-muted small align-middle">{{ s.submitted_date }}</td>
+            <td class="align-middle">
+              <span class="badge badge-{{ s.status }}">{{ s.get_status_display }}</span>
+            </td>
+            <td class="text-muted small align-middle">{{ s.response_date|default:"—" }}</td>
+            <td class="align-middle">
+              <a href="{% url 'crm:submission_detail' s.pk %}" class="btn btn-sm btn-outline-secondary">View</a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <p class="text-muted mb-0">No submissions to this label yet.</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block title %}{{ title }} — DJ CRM{% endblock %}
+{% block content %}
+
+<div class="page-header d-flex justify-content-between align-items-center">
+  <div>
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb mb-1">
+        <li class="breadcrumb-item"><a href="{% url 'crm:submission_list' %}" class="text-muted">Submissions</a></li>
+        {% if object %}
+        <li class="breadcrumb-item"><a href="{{ object.get_absolute_url }}" class="text-muted">{{ object }}</a></li>
+        {% endif %}
+        <li class="breadcrumb-item active">{{ title }}</li>
+      </ol>
+    </nav>
+    <h1 class="h3 mb-0">{{ title }}</h1>
+  </div>
+</div>
+
+<div class="row">
+  <div class="col-lg-6">
+    <div class="card p-4">
+      <form method="post" novalidate>
+        {% csrf_token %}
+
+        <div class="row g-3">
+          <div class="col-12">
+            <label class="form-label">Track *</label>
+            {{ form.track }}
+            {% if form.track.errors %}<div class="text-danger small mt-1">{{ form.track.errors }}</div>{% endif %}
+          </div>
+
+          <div class="col-12">
+            <label class="form-label">Label *</label>
+            {{ form.label }}
+            {% if form.label.errors %}<div class="text-danger small mt-1">{{ form.label.errors }}</div>{% endif %}
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label">Submitted Date *</label>
+            {{ form.submitted_date }}
+            {% if form.submitted_date.errors %}<div class="text-danger small mt-1">{{ form.submitted_date.errors }}</div>{% endif %}
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label">Status</label>
+            {{ form.status }}
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label">Response Date</label>
+            {{ form.response_date }}
+          </div>
+
+          <div class="col-12">
+            <label class="form-label">Deal Terms</label>
+            {{ form.terms }}
+            <div class="form-text text-muted">{{ form.terms.help_text }}</div>
+          </div>
+
+          <div class="col-12">
+            <label class="form-label">Notes</label>
+            {{ form.notes }}
+            <div class="form-text text-muted">{{ form.notes.help_text }}</div>
+          </div>
+        </div>
+
+        {% if form.non_field_errors %}
+        <div class="alert alert-danger mt-3">{{ form.non_field_errors }}</div>
+        {% endif %}
+
+        <div class="d-flex gap-2 mt-4">
+          <button type="submit" class="btn btn-accent px-4">Save Submission</button>
+          {% if object %}
+          <a href="{{ object.get_absolute_url }}" class="btn btn-outline-secondary">Cancel</a>
+          {% else %}
+          <a href="{% url 'crm:submission_list' %}" class="btn btn-outline-secondary">Cancel</a>
+          {% endif %}
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

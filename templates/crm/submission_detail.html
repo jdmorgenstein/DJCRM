@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+{% block title %}Submission — DJ CRM{% endblock %}
+{% block content %}
+
+<div class="page-header d-flex justify-content-between align-items-center">
+  <div>
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb mb-1">
+        <li class="breadcrumb-item"><a href="{% url 'crm:submission_list' %}" class="text-muted">Submissions</a></li>
+        <li class="breadcrumb-item active">{{ submission.track.title }} → {{ submission.label.name }}</li>
+      </ol>
+    </nav>
+    <h1 class="h3 mb-0">
+      <a href="{% url 'crm:track_detail' submission.track.pk %}" class="text-decoration-none text-light">{{ submission.track.title }}</a>
+      <span class="text-muted mx-2">→</span>
+      <a href="{% url 'crm:label_detail' submission.label.pk %}" class="text-decoration-none text-light">{{ submission.label.name }}</a>
+    </h1>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{% url 'crm:submission_edit' submission.pk %}" class="btn btn-outline-secondary">
+      <i class="bi bi-pencil me-1"></i>Edit
+    </a>
+    <a href="{% url 'crm:submission_delete' submission.pk %}" class="btn btn-outline-danger">
+      <i class="bi bi-trash"></i>
+    </a>
+  </div>
+</div>
+
+<div class="row g-4">
+  <div class="col-md-5">
+    <div class="card p-3 mb-3">
+      <h6 class="text-muted text-uppercase small mb-3">Submission Details</h6>
+      <dl class="mb-0">
+        <dt class="text-muted small">Status</dt>
+        <dd><span class="badge badge-{{ submission.status }} fs-6">{{ submission.get_status_display }}</span></dd>
+
+        <dt class="text-muted small mt-3">Submitted</dt>
+        <dd>{{ submission.submitted_date }}</dd>
+
+        {% if submission.response_date %}
+        <dt class="text-muted small mt-2">Response Received</dt>
+        <dd>{{ submission.response_date }}</dd>
+        {% endif %}
+
+        <dt class="text-muted small mt-2">Track</dt>
+        <dd>
+          <a href="{% url 'crm:track_detail' submission.track.pk %}" class="text-decoration-none">
+            {{ submission.track.title }}
+          </a>
+          <span class="text-muted small ms-1">{{ submission.track.get_genre_display }}</span>
+        </dd>
+
+        <dt class="text-muted small mt-2">Label</dt>
+        <dd>
+          <a href="{% url 'crm:label_detail' submission.label.pk %}" class="text-decoration-none">
+            {{ submission.label.name }}
+          </a>
+        </dd>
+      </dl>
+    </div>
+
+    {% if submission.is_accepted and submission.terms %}
+    <div class="card p-3 mb-3" style="border-color:#34d399;">
+      <h6 class="text-uppercase small mb-2" style="color:#34d399;"><i class="bi bi-check-circle me-1"></i>Deal Terms</h6>
+      <p class="mb-0 small" style="white-space:pre-wrap;">{{ submission.terms }}</p>
+    </div>
+    {% elif submission.terms %}
+    <div class="card p-3 mb-3">
+      <h6 class="text-muted text-uppercase small mb-2">Terms</h6>
+      <p class="mb-0 small" style="white-space:pre-wrap;">{{ submission.terms }}</p>
+    </div>
+    {% endif %}
+
+    {% if submission.notes %}
+    <div class="card p-3">
+      <h6 class="text-muted text-uppercase small mb-2">Notes</h6>
+      <p class="mb-0 small" style="white-space:pre-wrap;">{{ submission.notes }}</p>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="col-md-7">
+    <!-- Quick status update -->
+    <div class="card p-3 mb-3">
+      <h6 class="text-muted text-uppercase small mb-3">Quick Status Update</h6>
+      <form method="post" action="{% url 'crm:submission_edit' submission.pk %}">
+        {% csrf_token %}
+        <input type="hidden" name="track" value="{{ submission.track.pk }}">
+        <input type="hidden" name="label" value="{{ submission.label.pk }}">
+        <input type="hidden" name="submitted_date" value="{{ submission.submitted_date|date:'Y-m-d' }}">
+        <input type="hidden" name="terms" value="{{ submission.terms }}">
+        <input type="hidden" name="notes" value="{{ submission.notes }}">
+        <div class="row g-2 align-items-end">
+          <div class="col">
+            <label class="form-label small">New Status</label>
+            <select name="status" class="form-select form-select-sm">
+              <option value="pending" {% if submission.status == 'pending' %}selected{% endif %}>Pending</option>
+              <option value="accepted" {% if submission.status == 'accepted' %}selected{% endif %}>Accepted</option>
+              <option value="rejected" {% if submission.status == 'rejected' %}selected{% endif %}>Rejected</option>
+              <option value="withdrawn" {% if submission.status == 'withdrawn' %}selected{% endif %}>Withdrawn</option>
+              <option value="no_response" {% if submission.status == 'no_response' %}selected{% endif %}>No Response</option>
+            </select>
+          </div>
+          <div class="col">
+            <label class="form-label small">Response Date</label>
+            <input type="date" name="response_date" class="form-control form-control-sm"
+              value="{{ submission.response_date|date:'Y-m-d' }}">
+          </div>
+          <div class="col-auto">
+            <button type="submit" class="btn btn-sm btn-accent">Update</button>
+          </div>
+        </div>
+      </form>
+    </div>
+
+    <!-- Track & label info -->
+    <div class="row g-3">
+      <div class="col-md-6">
+        <div class="card p-3">
+          <h6 class="text-muted text-uppercase small mb-2">Track</h6>
+          <div class="fw-medium">{{ submission.track.title }}</div>
+          <div class="text-muted small">{{ submission.track.get_genre_display }}</div>
+          {% if submission.track.bpm %}<div class="text-muted small">{{ submission.track.bpm }} BPM{% if submission.track.key %} · {{ submission.track.key }}{% endif %}</div>{% endif %}
+          <a href="{% url 'crm:track_detail' submission.track.pk %}" class="btn btn-sm btn-outline-secondary mt-2">View Track</a>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="card p-3">
+          <h6 class="text-muted text-uppercase small mb-2">Label</h6>
+          <div class="fw-medium">{{ submission.label.name }}</div>
+          <div class="text-muted small">{{ submission.label.get_genre_display }}</div>
+          {% if submission.label.contact_name %}<div class="text-muted small">{{ submission.label.contact_name }}</div>{% endif %}
+          <a href="{% url 'crm:label_detail' submission.label.pk %}" class="btn btn-sm btn-outline-secondary mt-2">View Label</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
