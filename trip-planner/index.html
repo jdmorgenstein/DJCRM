@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sun vs. Snow — New Year's Family Trip Planner</title>
+<style>
+  :root {
+    color-scheme: light;
+    /* ink + surfaces (cool-biased neutrals) */
+    --page: #f7f8f7;
+    --surface: #fcfcfb;
+    --surface-2: #f1f2f0;
+    --ink: #0b0b0b;
+    --ink-2: #52514e;
+    --ink-3: #898781;
+    --hairline: #e1e0d9;
+    --ring: rgba(11,11,11,0.10);
+    --baseline: #c3c2b7;
+    /* the two worlds */
+    --beach: #eb6834;
+    --beach-soft: rgba(235,104,52,0.12);
+    --snow: #2a78d6;
+    --snow-soft: rgba(42,120,214,0.12);
+    /* status (fixed, never themed) */
+    --good: #0ca30c;
+    --good-text: #006300;
+    --warn: #fab219;
+    --crit: #d03b3b;
+    --band: rgba(11,11,11,0.055);
+    --shadow: 0 1px 2px rgba(11,11,11,0.05), 0 4px 16px rgba(11,11,11,0.05);
+    --focus: 0 0 0 2px var(--surface), 0 0 0 4px var(--snow);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) {
+      color-scheme: dark;
+      --page: #0d0d0d;
+      --surface: #1a1a19;
+      --surface-2: #232322;
+      --ink: #ffffff;
+      --ink-2: #c3c2b7;
+      --ink-3: #898781;
+      --hairline: #2c2c2a;
+      --ring: rgba(255,255,255,0.10);
+      --baseline: #383835;
+      --beach: #d95926;
+      --beach-soft: rgba(217,89,38,0.18);
+      --snow: #3987e5;
+      --snow-soft: rgba(57,135,229,0.18);
+      --good-text: #0ca30c;
+      --band: rgba(255,255,255,0.07);
+      --shadow: none;
+      --focus: 0 0 0 2px var(--surface), 0 0 0 4px var(--snow);
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --page: #0d0d0d;
+    --surface: #1a1a19;
+    --surface-2: #232322;
+    --ink: #ffffff;
+    --ink-2: #c3c2b7;
+    --ink-3: #898781;
+    --hairline: #2c2c2a;
+    --ring: rgba(255,255,255,0.10);
+    --baseline: #383835;
+    --beach: #d95926;
+    --beach-soft: rgba(217,89,38,0.18);
+    --snow: #3987e5;
+    --snow-soft: rgba(57,135,229,0.18);
+    --good-text: #0ca30c;
+    --band: rgba(255,255,255,0.07);
+    --shadow: none;
+    --focus: 0 0 0 2px var(--surface), 0 0 0 4px var(--snow);
+  }
+  :root[data-theme="light"] {
+    color-scheme: light;
+    --page: #f7f8f7;
+    --surface: #fcfcfb;
+    --surface-2: #f1f2f0;
+    --ink: #0b0b0b;
+    --ink-2: #52514e;
+    --ink-3: #898781;
+    --hairline: #e1e0d9;
+    --ring: rgba(11,11,11,0.10);
+    --baseline: #c3c2b7;
+    --beach: #eb6834;
+    --beach-soft: rgba(235,104,52,0.12);
+    --snow: #2a78d6;
+    --snow-soft: rgba(42,120,214,0.12);
+    --good-text: #006300;
+    --band: rgba(11,11,11,0.055);
+    --shadow: 0 1px 2px rgba(11,11,11,0.05), 0 4px 16px rgba(11,11,11,0.05);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--page);
+    color: var(--ink);
+    font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+    -webkit-text-size-adjust: 100%;
+  }
+  .wrap { max-width: 1060px; margin: 0 auto; padding: 20px 20px 64px; }
+
+  a { color: var(--snow); }
+  button { font: inherit; color: inherit; }
+  button:focus-visible, input:focus-visible, select:focus-visible, [tabindex]:focus-visible {
+    outline: none; box-shadow: var(--focus); border-radius: 6px;
+  }
+
+  /* ---------- header ---------- */
+  header.top {
+    display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 16px;
+    padding: 6px 0 18px;
+  }
+  .wordmark { font-size: 26px; font-weight: 800; letter-spacing: -0.02em; margin: 0; text-wrap: balance; }
+  .wordmark .sun { color: var(--beach); }
+  .wordmark .vs { color: var(--ink-3); font-weight: 600; font-size: 0.75em; padding: 0 2px; }
+  .wordmark .sno { color: var(--snow); }
+  .tagline { color: var(--ink-2); font-size: 14px; margin: 0; }
+  .top-actions { margin-left: auto; display: flex; gap: 8px; }
+  .ghost-btn {
+    background: none; border: 1px solid var(--hairline); border-radius: 8px;
+    padding: 5px 12px; font-size: 13px; color: var(--ink-2); cursor: pointer;
+  }
+  .ghost-btn:hover { background: var(--surface-2); color: var(--ink); }
+
+  /* ---------- panels ---------- */
+  .panel {
+    background: var(--surface); border: 1px solid var(--ring); border-radius: 14px;
+    box-shadow: var(--shadow); padding: 18px 20px; margin-bottom: 18px;
+  }
+  .panel h2 {
+    margin: 0 0 4px; font-size: 12px; font-weight: 700; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--ink-3);
+  }
+  .panel .sub { margin: 0 0 14px; color: var(--ink-2); font-size: 13px; }
+
+  /* ---------- setup ---------- */
+  .setup-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 16px 24px; }
+  .field label, .fam-card .fname { display: block; font-size: 12px; font-weight: 600; color: var(--ink-2); margin-bottom: 4px; }
+  .field input[type="date"], .field input[type="number"], .field select, .fam-card input[type="text"] {
+    width: 100%; padding: 7px 9px; border: 1px solid var(--hairline); border-radius: 8px;
+    background: var(--surface); color: var(--ink); font: inherit; font-size: 14px;
+  }
+  .hint { font-size: 12px; color: var(--ink-3); margin-top: 4px; }
+  .seg { display: inline-flex; border: 1px solid var(--hairline); border-radius: 8px; overflow: hidden; }
+  .seg button { background: none; border: 0; padding: 7px 12px; font-size: 13px; cursor: pointer; color: var(--ink-2); }
+  .seg button[aria-pressed="true"] { background: var(--surface-2); color: var(--ink); font-weight: 600; }
+  .fam-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(215px, 1fr)); gap: 12px; margin-top: 14px; }
+  .fam-card { border: 1px solid var(--hairline); border-radius: 10px; padding: 10px 12px; background: var(--surface); }
+  .fam-card input[type="text"] { font-weight: 600; margin-bottom: 8px; }
+  .steppers { display: flex; gap: 10px; flex-wrap: wrap; }
+  .stepper { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--ink-2); }
+  .stepper .num {
+    min-width: 26px; text-align: center; font-weight: 700; color: var(--ink);
+    font-variant-numeric: tabular-nums;
+  }
+  .stepper button {
+    width: 24px; height: 24px; border-radius: 6px; border: 1px solid var(--hairline);
+    background: none; cursor: pointer; line-height: 1; color: var(--ink-2); padding: 0;
+  }
+  .stepper button:hover { background: var(--surface-2); color: var(--ink); }
+  .group-note { margin-top: 12px; font-size: 13px; color: var(--ink-2); }
+  .group-note strong { color: var(--ink); }
+
+  /* ---------- board ---------- */
+  .board-head { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; margin-bottom: 8px; }
+  .filter-chips { display: flex; gap: 6px; }
+  .chip-btn {
+    border: 1px solid var(--hairline); background: none; border-radius: 999px;
+    padding: 4px 12px; font-size: 13px; cursor: pointer; color: var(--ink-2);
+  }
+  .chip-btn[aria-pressed="true"] { background: var(--surface-2); color: var(--ink); font-weight: 600; border-color: var(--baseline); }
+  .legend { display: flex; gap: 14px; margin-left: auto; font-size: 12px; color: var(--ink-2); flex-wrap: wrap; }
+  .legend .key { display: inline-flex; align-items: center; gap: 6px; }
+  .swatch { width: 14px; height: 8px; border-radius: 3px; display: inline-block; }
+  .swatch.beach { background: var(--beach); }
+  .swatch.snow { background: var(--snow); }
+  .swatch.band { background: var(--band); border: 1px dashed var(--baseline); height: 10px; }
+
+  .axis-note { font-size: 12px; color: var(--ink-3); margin: 2px 0 10px; }
+
+  .dest-row { border-top: 1px solid var(--hairline); }
+  .dest-row:first-of-type { border-top: 0; }
+  .dest-btn {
+    display: grid; grid-template-columns: 218px 1fr 118px; gap: 8px 14px; align-items: center;
+    width: 100%; text-align: left; background: none; border: 0; padding: 12px 6px; cursor: pointer;
+    border-radius: 10px;
+  }
+  .dest-btn:hover { background: var(--surface-2); }
+  .d-name { font-weight: 700; font-size: 14.5px; line-height: 1.25; }
+  .d-meta { font-size: 12px; color: var(--ink-3); margin-top: 2px; }
+  .meter { position: relative; height: 34px; }
+  .meter .track {
+    position: absolute; inset: 9px 0; background: var(--surface-2);
+    border-radius: 4px;
+  }
+  .meter .bandzone {
+    position: absolute; top: 4px; bottom: 4px; background: var(--band);
+    border-left: 1px dashed var(--baseline); border-right: 1px dashed var(--baseline);
+  }
+  .meter .bar {
+    position: absolute; top: 11px; bottom: 11px; left: 0; border-radius: 0 4px 4px 0;
+    min-width: 3px;
+  }
+  .meter .bar.beach { background: var(--beach); }
+  .meter .bar.snow { background: var(--snow); }
+  .meter .val {
+    position: absolute; top: 50%; transform: translateY(-50%);
+    font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap;
+  }
+  .meter .band-label {
+    position: absolute; top: -7px; font-size: 10px; color: var(--ink-3); transform: translateX(-50%);
+    font-variant-numeric: tabular-nums;
+  }
+  .status { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: var(--ink-2); justify-self: end; white-space: nowrap; }
+  .status .dot { width: 8px; height: 8px; border-radius: 50%; flex: 0 0 auto; }
+  .status.s-good .dot { background: var(--good); }
+  .status.s-good { color: var(--good-text); }
+  .status.s-warn .dot { background: var(--warn); }
+  .status.s-crit .dot { background: var(--crit); }
+  .status.s-crit { color: var(--crit); }
+  .caret { color: var(--ink-3); font-size: 11px; margin-left: 6px; }
+
+  /* ---------- detail ---------- */
+  .detail { padding: 4px 6px 18px; }
+  @media (prefers-reduced-motion: no-preference) {
+    .detail { animation: slide 0.18s ease-out; }
+    @keyframes slide { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+  }
+  .detail-cols { display: grid; grid-template-columns: 1.1fr 1fr; gap: 18px; }
+  @media (max-width: 780px) { .detail-cols { grid-template-columns: 1fr; } }
+  .notes { margin: 0 0 6px; padding-left: 18px; font-size: 13.5px; color: var(--ink-2); }
+  .notes li { margin-bottom: 4px; }
+  .notes li strong { color: var(--ink); }
+  .assump h3, .linkbox h3, .fam-costs h3 {
+    font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-3);
+    margin: 14px 0 8px; font-weight: 700;
+  }
+  .assump-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+  .assump-grid .field label { font-weight: 500; min-height: 30px; display: flex; align-items: flex-end; }
+  .assump-grid input { width: 100%; padding: 6px 8px; border: 1px solid var(--hairline); border-radius: 8px; background: var(--surface); color: var(--ink); font-size: 14px; font-variant-numeric: tabular-nums; }
+  .mini-btn { background: none; border: 0; color: var(--snow); font-size: 12.5px; cursor: pointer; padding: 4px 0; text-decoration: underline; }
+
+  .cost-table-wrap { overflow-x: auto; }
+  table.costs { border-collapse: collapse; width: 100%; font-size: 13px; min-width: 470px; }
+  table.costs th { text-align: right; font-weight: 600; color: var(--ink-3); font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.05em; padding: 6px 8px; border-bottom: 1px solid var(--hairline); }
+  table.costs th:first-child, table.costs td:first-child { text-align: left; }
+  table.costs td { padding: 6px 8px; text-align: right; font-variant-numeric: tabular-nums; border-bottom: 1px solid var(--hairline); color: var(--ink-2); }
+  table.costs td:first-child { color: var(--ink); font-weight: 600; }
+  table.costs td.tot { font-weight: 700; color: var(--ink); }
+  table.costs tr.grand td { border-bottom: 0; border-top: 1px solid var(--baseline); color: var(--ink); }
+  .over { color: var(--crit) !important; }
+  .underb { color: var(--good-text) !important; }
+
+  .links-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 10px; }
+  @media (max-width: 520px) { .links-grid { grid-template-columns: 1fr; } }
+  .deal-link {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    border: 1px solid var(--hairline); border-radius: 9px; padding: 8px 11px;
+    text-decoration: none; font-size: 13.5px; font-weight: 600; color: var(--ink);
+    background: var(--surface);
+  }
+  .deal-link:hover { border-color: var(--baseline); background: var(--surface-2); }
+  .deal-link .tag { font-size: 10.5px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--ink-3); flex: 0 0 auto; }
+  .deal-link .tag.pre { color: var(--good-text); }
+
+  /* ---------- tooltip ---------- */
+  .tip {
+    position: fixed; z-index: 30; pointer-events: none; background: var(--surface);
+    border: 1px solid var(--ring); border-radius: 10px; box-shadow: var(--shadow);
+    padding: 9px 12px; font-size: 12.5px; max-width: 280px; display: none;
+  }
+  .tip.show { display: block; }
+  .tip .t-title { font-weight: 700; margin-bottom: 4px; }
+  .tip .t-row { display: flex; justify-content: space-between; gap: 16px; color: var(--ink-2); }
+  .tip .t-row b { font-variant-numeric: tabular-nums; color: var(--ink); font-weight: 600; }
+
+  /* ---------- tips + footer ---------- */
+  .tips-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 28px; }
+  @media (max-width: 720px) { .tips-cols { grid-template-columns: 1fr; } }
+  .tips-cols ul { margin: 0; padding-left: 18px; font-size: 13.5px; color: var(--ink-2); }
+  .tips-cols li { margin-bottom: 7px; }
+  .tips-cols li strong { color: var(--ink); }
+  footer { color: var(--ink-3); font-size: 12.5px; line-height: 1.6; padding-top: 4px; }
+
+  @media (max-width: 640px) {
+    body { overflow-x: clip; }
+    .dest-btn { grid-template-columns: 1fr auto; }
+    .dest-btn .meter { grid-column: 1 / -1; order: 3; }
+    .status { white-space: normal; max-width: 118px; align-self: start; }
+    .wrap { padding: 14px 12px 48px; }
+    .panel { padding: 14px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1 class="wordmark"><span class="sun">Sun</span><span class="vs"> vs. </span><span class="sno">Snow</span></h1>
+      <p class="tagline">New Year's 2026–27 family trip planner · departing Boca Raton, FL · 4 families, one budget</p>
+    </div>
+    <div class="top-actions">
+      <button class="ghost-btn" id="themeBtn" type="button">Theme</button>
+      <button class="ghost-btn" id="resetBtn" type="button">Reset all</button>
+    </div>
+  </header>
+
+  <section class="panel" id="setupPanel">
+    <h2>Trip setup</h2>
+    <p class="sub">Everything below recalculates live and is saved in your browser. Edit any number — these start as researched estimates, not quotes.</p>
+    <div class="setup-grid">
+      <div class="field">
+        <label for="checkin">Check-in</label>
+        <input type="date" id="checkin">
+        <div class="hint" id="dateHint"></div>
+      </div>
+      <div class="field">
+        <label for="nights">Nights</label>
+        <div class="stepper" style="gap:10px">
+          <button type="button" data-n="-1" id="nMinus" aria-label="Fewer nights">−</button>
+          <span class="num" id="nightsNum" style="font-size:18px"></span>
+          <button type="button" data-n="1" id="nPlus" aria-label="More nights">+</button>
+          <span class="hint" style="margin:0">4–5 fits your plan</span>
+        </div>
+      </div>
+      <div class="field">
+        <label for="budget">Budget ceiling per family</label>
+        <input type="number" id="budget" min="1000" max="20000" step="100">
+        <div class="hint">Comfort band $3,000–4,000 is shaded on every meter</div>
+      </div>
+      <div class="field">
+        <label>Split shared costs (house, cars, gas)</label>
+        <div class="seg" role="group" aria-label="Cost split mode">
+          <button type="button" id="splitFam" aria-pressed="true">Evenly by family</button>
+          <button type="button" id="splitHead" aria-pressed="false">By headcount</button>
+        </div>
+      </div>
+    </div>
+    <div class="fam-grid" id="famGrid"></div>
+    <p class="group-note" id="groupNote"></p>
+  </section>
+
+  <section class="panel">
+    <h2>The board</h2>
+    <p class="sub">Each bar is the <strong>highest single-family cost</strong> for that trip (usually the family of four) — the number that has to clear your budget. Hover for every family; click a row to tune assumptions and open pre-filled searches.</p>
+    <div class="board-head">
+      <div class="filter-chips" role="group" aria-label="Filter destinations">
+        <button class="chip-btn" data-f="all" aria-pressed="true" type="button">All</button>
+        <button class="chip-btn" data-f="beach" aria-pressed="false" type="button">🏝 Beach</button>
+        <button class="chip-btn" data-f="snow" aria-pressed="false" type="button">❄️ Snow</button>
+      </div>
+      <div class="legend">
+        <span class="key"><span class="swatch beach"></span>Beach all-inclusive</span>
+        <span class="key"><span class="swatch snow"></span>Snow trip</span>
+        <span class="key"><span class="swatch band"></span>Your $3–4k band</span>
+      </div>
+    </div>
+    <div id="board"></div>
+    <p class="axis-note" id="axisNote"></p>
+  </section>
+
+  <section class="panel">
+    <h2>Where the deals actually are</h2>
+    <div class="tips-cols" id="dealTips"></div>
+  </section>
+
+  <footer>
+    <p id="methodNote"></p>
+  </footer>
+</div>
+<div class="tip" id="tip" role="presentation"></div>
+
+<script>
+'use strict';
+/* ============================== data ============================== */
+const RESEARCH_DATE = 'August 6, 2026';
+
+const DEFAULT_STATE = {
+  checkin: '2026-12-30',
+  nights: 4,
+  budget: 4000,
+  split: 'family',
+  filter: 'all',
+  families: [
+    { name: 'Your family',     adults: 2, kids: 2, skiers: 4 },
+    { name: "Sister's family", adults: 2, kids: 1, skiers: 2 },
+    { name: 'Your parents',    adults: 2, kids: 0, skiers: 0 },
+    { name: "Wife's parents",  adults: 2, kids: 0, skiers: 0 }
+  ],
+  overrides: {}
+};
+
+/* Editable assumption fields per destination, keyed by id.
+   All dollar figures are USD. flightA/flightK = round trip per adult/kid.
+   aiA/aiK = all-inclusive per night per adult/kid. house = whole-house per night.
+   liftDay/rentDay = per skier per day. foodDay = per person per day (non-AI trips).
+   carsGas = round-trip gas+tolls per car. rentalCarDay = per rental vehicle per day. */
+const DESTS = [
+  {
+    id: 'puntacana', type: 'beach', travel: 'fly',
+    name: 'Punta Cana, Dominican Republic',
+    meta: 'Fly FLL/MIA → PUJ · ~2h · all-inclusive',
+    fields: { flightA: 380, flightK: 380, aiA: 130, aiK: 65, cars: 0, miscGroup: 500 },
+    notes: [
+      '<strong>The only beach option that comfortably fits $4k per family of 4</strong> over New Year\'s — 3.5–4★ family all-inclusives (Bahia Principe, Riu Bambu, Vista Sol, Occidental, Grand Palladium) run real promos even at peak.',
+      '<strong>Kids under 12 often stay free or half price</strong> (Dreams, Sunscape, Club Med model) — that single lever is worth $400–800.',
+      'Southwest now flies FLL→PUJ ~20×/week (2 free bags each — huge for 11 people); Spirit and JetBlue keep fares honest. Book by Sep–Oct.',
+      'Misc line covers airport transfers + tips for the group (CheapCaribbean packages include transfers).',
+      '<strong>Watch out:</strong> the same room can vary $500+ across booking sites — always cross-shop 3 channels.'
+    ]
+  },
+  {
+    id: 'cancun', type: 'beach', travel: 'fly',
+    name: 'Cancun / Riviera Maya, Mexico',
+    meta: 'Fly FLL/MIA → CUN · ~1¾h · all-inclusive',
+    fields: { flightA: 450, flightK: 450, aiA: 175, aiK: 90, cars: 0, miscGroup: 550 },
+    notes: [
+      'Shortest beach flight and the biggest resort selection, but <strong>runs 15–35% over Punta Cana</strong> — NYE in Cancun is peak-peak (5★ family resorts hit $1,100+/night).',
+      'To stay near budget: older Riviera Maya inventory (Riu Lupita, Viva, Bahia Principe RM, Seadust) + Spirit/Frontier fares from FLL.',
+      '<strong>Watch out:</strong> many Cancun/RM resorts charge a <strong>mandatory NYE gala supplement</strong> (~$100/adult, ~$50/child) — sometimes billed separately. Confirm in writing before booking.',
+      'Holiday airfare from South Florida sells out early; book flights by ~September.'
+    ]
+  },
+  {
+    id: 'montego', type: 'beach', travel: 'fly',
+    name: 'Montego Bay, Jamaica',
+    meta: 'Fly FLL/MIA → MBJ · ~1¾h · all-inclusive',
+    fields: { flightA: 400, flightK: 400, aiA: 180, aiK: 90, cars: 0, miscGroup: 500 },
+    notes: [
+      'Resorts cluster minutes from the airport, so transfers are short — genuinely nice with small kids and grandparents.',
+      'Fewer budget mega-resorts than Punta Cana; the family-value pick is <strong>Holiday Inn Resort Montego Bay</strong> (kids stay + eat free). Note Riu Montego Bay is adults-only.',
+      'Southwest flies FLL→MBJ ~34×/week; Spirit and JetBlue from ~$220 off-peak.',
+      '<strong>Watch out:</strong> at family-resort tier Jamaica prices at or above Cancun — it fits budget only with a package deal.'
+    ]
+  },
+  {
+    id: 'bannerelk', type: 'snow', travel: 'drive',
+    name: 'Banner Elk, NC — Sugar & Beech Mountain',
+    meta: 'Drive ~790 mi (~11½–12h) · big cabin + ski',
+    fields: { carsGas: 260, cars: 3, house: 850, liftDay: 99, rentDay: 25, skiDays: 2, foodDay: 30, miscGroup: 300 },
+    notes: [
+      '<strong>The budget king.</strong> No flights for 11 people — that alone saves $4,000–5,000 vs. any fly option.',
+      'Sugar Mountain\'s 2026–27 holiday prices are already posted: <strong>$99/day adult, $72 child 5–11, kids ≤4 just $4</strong>. Both mountains have 100% snowmaking — slopes are a near-lock for New Year\'s even if nothing natural falls.',
+      '<strong>Rent gear at off-site shops in town</strong> (Ski Country Sports, Alpine Ski Center): $15–25/day vs $30–40 at the resort — saves the group $200+.',
+      'A 5–6BR house sleeping 12–14 runs $600–1,000/night over New Year\'s ($2,800–4,400 for 4 nights with fees). One roof, one kitchen, cousins in bunk rooms.',
+      'Hate the drive? Fly FLL→Charlotte ($110–320 rt) + a minivan (~$350/5 days) and it\'s 2h from CLT — saves ~9 hours each way for about $1,000–1,600 more per family of 4.',
+      '<strong>Watch out:</strong> holiday-week crowds are heavy and only part of the mountain may be open after a warm spell. The 11½-hour drive means a 4am start or an overnight stop. Book the cabin by Sept–Oct — 12+ person inventory is thin.'
+    ]
+  },
+  {
+    id: 'gatlinburg', type: 'snow', travel: 'drive',
+    name: 'Gatlinburg / Pigeon Forge, TN',
+    meta: 'Drive ~812 mi (~12½h) · cabin + Ober Mountain',
+    fields: { carsGas: 270, cars: 3, house: 950, liftDay: 95, rentDay: 25, skiDays: 2, foodDay: 30, miscGroup: 500 },
+    notes: [
+      '<strong>Most to do for non-skiers</strong>: Dollywood\'s Smoky Mountain Christmas (6M lights, ~$85–95/person online, ages ≤3 free), Ripley\'s Aquarium, SkyLift, the strip — grandparents and the little one stay busy.',
+      'Ober Mountain is small (10 trails) and beginner-friendly — fine for kids and first-timers, thin for real skiers. Peak-day tickets $89–99; ages ≤4 free.',
+      '<strong>Rent skis downtown, not on-mountain</strong> — on-site rental lines hit 2–3 hours on holiday peak days.',
+      '7,000+ cabins means early bookers can still land a sleeps-14 chalet for ~$700–1,000/night over New Year\'s.',
+      '<strong>Watch out:</strong> only ~1-in-4 odds of natural snow in town at New Year\'s — the slopes run on snowmaking but the town will likely be brown. The trip stands on Dollywood + the Smokies, snow is the bonus.'
+    ]
+  },
+  {
+    id: 'snowshoe', type: 'snow', travel: 'drive',
+    name: 'Snowshoe, WV',
+    meta: 'Drive ~975 mi (~15–16h) · best Southeast skiing',
+    fields: { carsGas: 330, cars: 3, house: 1200, liftDay: 129, rentDay: 40, skiDays: 2, foodDay: 35, miscGroup: 300 },
+    notes: [
+      'Clearly the best skiing within driving distance — 60 trails, 1,500 ft vertical, ~180" natural snow vs Sugar\'s 20 slopes.',
+      'Holiday lift tickets ~$129/day online ($149 walk-up); village lodging for 12 runs $900–1,500/night with 4–5 night minimums over New Year\'s.',
+      '<strong>Watch out:</strong> the drive is 15–16 hours <em>each way</em> — with grandparents and a toddler in the caravan, that\'s the likely deal-breaker vs. NC. The last 2 hours are mountain roads.'
+    ]
+  },
+  {
+    id: 'camelback', type: 'snow', travel: 'fly',
+    name: 'Camelback, Poconos, PA',
+    meta: 'Fly FLL → PHL + 1¾h drive · cheapest fly-to-snow',
+    fields: { flightA: 185, flightK: 185, house: 700, liftDay: 47, rentDay: 20, skiDays: 2, foodDay: 30, rentalCarDay: 70, rentalCars: 2, miscGroup: 300 },
+    notes: [
+      '<strong>The sleeper deal of the whole board.</strong> FLL→Philadelphia runs $120–250 round trip even at New Year\'s, and Camelback\'s <strong>Triple Ticket is 3 ski days for ~$139 with NO blackout dates</strong> (~$199 with rentals included) — the best holiday lift deal anywhere on this list.',
+      'Big Poconos houses are abundant: area average ~$580/night for Dec 26–Jan 2; 12-guest houses with a hot tub run $500–900 over New Year\'s.',
+      'Camelback also has the biggest snowtubing park in the US plus an indoor waterpark — real options for the non-skiers.',
+      '<strong>Watch out:</strong> 800 ft vertical and serious holiday crowds — this is a fun family hill, not a destination mountain. Thaw risk is real, but snowmaking usually holds through late December.'
+    ]
+  },
+  {
+    id: 'tremblant', type: 'snow', travel: 'fly',
+    name: 'Mont-Tremblant, Québec, Canada',
+    meta: 'Fly FLL/MIA → YUL + 1½h drive · real winter',
+    fields: { flightA: 380, flightK: 380, house: 800, liftDay: 110, rentDay: 45, skiDays: 2, foodDay: 35, rentalCarDay: 80, rentalCars: 2, miscGroup: 300 },
+    notes: [
+      '<strong>The only option with near-guaranteed real winter</strong> — ~70% of terrain open by Christmas on snowmaking, 2,116 ft vertical, a storybook pedestrian village, and NYE fireworks on the slopes.',
+      'You fly counter-flow (snowbirds head FLL→Montréal in reverse), which softens the holiday premium: Porter/Air Transat run $250–450 round trip booked early, mainline $450–650.',
+      '<strong>Book lift tickets before Oct 15</strong>: Tremblant\'s advance multi-day rate is ~CAD 104 (≈$74)/day vs ~$127 holiday walk-up — that\'s $400+ back for the group. The strong US dollar (CAD ≈ $0.71) helps everywhere.',
+      'Chalets sleeping 12 run ~$550–1,000/night USD over New Year\'s — but expect <strong>5–7 night minimums</strong>, which pushes you to the 5-night version of this trip.',
+      'Passports needed for everyone, including the kids. Rental vans include Québec\'s mandatory winter tires (~$250–450 per van for 5 days).',
+      '<strong>Watch out:</strong> this only fits the budget with early-booking discipline on all three fronts (flights now, lift tickets by Oct 15, modest chalet). Cheaper-but-smaller alternative: Blue Mountain, Ontario via Toronto (~$400–600 less per family, 720 ft vertical, more rain risk).'
+    ]
+  }
+];
+
+/* Deal-search links. {ci}/{co} = ISO dates, {ciC}/{coC} = compact dates,
+   {ad}/{kd} = family-1 adults/kids, {AD}/{KD} = group adults/kids, {rooms} = family count. */
+const LINKS = {
+  puntacana: { code: 'PUJ', expediaDest: 'Punta Cana (and vicinity), Dominican Republic' },
+  cancun:    { code: 'CUN', expediaDest: 'Cancun (and vicinity), Quintana Roo, Mexico' },
+  montego:   { code: 'MBJ', expediaDest: 'Montego Bay (and vicinity), Jamaica' },
+  bannerelk: { airbnb: 'Banner-Elk--NC--United-States', vrbo: 'Banner Elk, NC',
+               resorts: [['Sugar Mountain tickets', 'https://www.skisugar.com/'], ['Beech Mountain tickets', 'https://www.beechmountainresort.com/']] },
+  gatlinburg:{ airbnb: 'Gatlinburg--TN--United-States', vrbo: 'Gatlinburg, TN',
+               resorts: [['Ober Mountain tickets', 'https://obermountain.com/'], ['Dollywood calendar', 'https://www.dollywood.com/']] },
+  snowshoe:  { airbnb: 'Snowshoe--WV--United-States', vrbo: 'Snowshoe, WV',
+               resorts: [['Snowshoe lodging + lifts', 'https://www.snowshoemtn.com/']] },
+  camelback: { code: 'PHL', airbnb: 'Pocono-Mountains--PA--United-States', vrbo: 'Pocono Mountains, PA',
+               resorts: [['Camelback Triple Ticket', 'https://www.camelbackresort.com/'], ['Camelback lodging', 'https://www.camelbackresort.com/stay/']] },
+  tremblant: { code: 'YUL', airbnb: 'Mont-Tremblant--QC--Canada', vrbo: 'Mont-Tremblant, QC',
+               resorts: [['Tremblant lifts (advance by Oct 15)', 'https://www.tremblant.ca/plan/tickets-and-passes/winter-lift-tickets'], ['Tremblant lodging', 'https://www.tremblant.ca/']] }
+};
+
+const DEAL_TIPS = [
+  ['Cross-shop every quote', 'the same resort room over the same dates can vary $500+ between Expedia, CheapCaribbean, Costco Travel, and booking direct. Always check three channels before paying.'],
+  ['CheapCaribbean', 'the budget king for Caribbean all-inclusive packages — transfers included, frequent $175–250 promo codes, and a Black Friday sale precedent of $500 off sitewide. Caveat: New Year\'s inventory is picked over by late November, and holiday bookings are basically nonrefundable.'],
+  ['Costco Travel', 'not always the lowest sticker price, but adds transfers + Digital Shop Cards + instant-savings promos, and is strongest on the Hyatt/Dreams tier. Worth it if anyone in the family has a membership.'],
+  ['Expedia & JetBlue Vacations', 'Expedia packages often show the lowest headline price (but usually nonrefundable, no transfers); JetBlue Vacations runs FLL nonstops with transfers and resort credits included.'],
+  ['Book flights by late September', 'holiday-week fares from FLL/MIA only climb from October and spike inside 15 days. Southwest (2 free checked bags each — big for 11 people, now ~20 weekly FLL→Punta Cana flights) and JetBlue open holiday schedules early; Spirit/Frontier set the floor.'],
+  ['Kids-stay-free promos', 'Punta Cana resorts (Dreams, Sunscape, and others) often let kids under 12 stay free or half price even at New Year\'s — the single biggest lever to pull a beach trip into budget.'],
+  ['Cabins: find on Airbnb, book direct', 'many Smokies/NC cabins are managed by local companies (Cabins USA, Jackson Mountain Homes, Elk Springs) that charge 10–15% less than the same cabin on Airbnb/Vrbo. Book by Sept–Oct — sleeps-12+ New Year\'s inventory is thin.'],
+  ['Ski cheap: town shops + early online tickets', 'off-site rental shops charge $15–25/day vs $30–40 on-mountain, and Sugar/Beech/Ober holiday lift tickets are cheapest bought online early — they can sell out for New Year\'s week entirely.'],
+  ['The two standout lift-ticket deals', 'Camelback\'s Triple Ticket: 3 days ~$139 with no holiday blackouts (~$199 with gear). Tremblant\'s advance multi-day tickets (buy before Oct 15): ~$74/day vs $127 walk-up. Vermont is the opposite — $200–266/day over the holiday, which is why it\'s not on the board.']
+];
+
+/* ============================ state ============================ */
+const LS_KEY = 'sunvsnow-v1';
+let S = load();
+let expanded = null;
+
+function load() {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (raw) { const s = JSON.parse(raw); if (s && s.families) return s; }
+  } catch (e) {}
+  return JSON.parse(JSON.stringify(DEFAULT_STATE));
+}
+function save() { try { localStorage.setItem(LS_KEY, JSON.stringify(S)); } catch (e) {} }
+
+function fieldsFor(d) {
+  return Object.assign({}, d.fields, S.overrides[d.id] || {});
+}
+
+/* ============================ math ============================ */
+function fmt(n) { return '$' + Math.round(n).toLocaleString('en-US'); }
+
+function shares() {
+  const heads = S.families.map(f => f.adults + f.kids);
+  const totalHeads = heads.reduce((a, b) => a + b, 0) || 1;
+  if (S.split === 'head') return heads.map(h => h / totalHeads);
+  return S.families.map(() => 1 / S.families.length);
+}
+
+function famCosts(d) {
+  const f = fieldsFor(d);
+  const n = S.nights;
+  const sh = shares();
+  return S.families.map((fam, i) => {
+    const c = { flights: 0, lodging: 0, ski: 0, food: 0, car: 0, misc: 0 };
+    if (d.travel === 'fly') {
+      c.flights = fam.adults * (f.flightA || 0) + fam.kids * (f.flightK || 0);
+    } else {
+      c.flights = ((f.carsGas || 0) * (f.cars || 0)) * sh[i];
+    }
+    if (f.aiA != null) {
+      c.lodging = (fam.adults * f.aiA + fam.kids * (f.aiK || 0)) * n;
+    } else if (f.house != null) {
+      c.lodging = f.house * n * sh[i];
+    }
+    if (f.liftDay != null) {
+      c.ski = (fam.skiers || 0) * ((f.liftDay || 0) + (f.rentDay || 0)) * (f.skiDays || 0);
+    }
+    if (f.foodDay != null) {
+      c.food = (fam.adults + fam.kids) * f.foodDay * n;
+    }
+    if (f.rentalCarDay != null) {
+      c.car = (f.rentalCarDay * (f.rentalCars || 0) * (n + 1)) * sh[i];
+    }
+    c.misc = (f.miscGroup || 0) * sh[i];
+    c.total = c.flights + c.lodging + c.ski + c.food + c.car + c.misc;
+    return c;
+  });
+}
+
+function verdict(maxCost) {
+  if (maxCost <= 3000) return { cls: 's-good', label: 'Well under budget' };
+  if (maxCost <= S.budget) return { cls: 's-good', label: 'In budget' };
+  if (maxCost <= S.budget * 1.15) return { cls: 's-warn', label: 'Stretch' };
+  return { cls: 's-crit', label: 'Over budget' };
+}
+
+/* ============================ links ============================ */
+function isoDates() {
+  const ci = S.checkin;
+  const d = new Date(ci + 'T12:00:00');
+  d.setDate(d.getDate() + S.nights);
+  const co = d.toISOString().slice(0, 10);
+  return { ci, co };
+}
+function dealLinks(d) {
+  const L = LINKS[d.id] || {};
+  const { ci, co } = isoDates();
+  const ciC = ci.replace(/-/g, ''), coC = co.replace(/-/g, '');
+  const f1 = S.families[0] || { adults: 2, kids: 2 };
+  const AD = S.families.reduce((a, f) => a + f.adults, 0);
+  const KD = S.families.reduce((a, f) => a + f.kids, 0);
+  const rooms = S.families.length;
+  const out = { packages: [], flights: [], houses: [], resorts: [] };
+
+  if (d.type === 'beach') {
+    out.packages.push(
+      ['Expedia — hotels w/ your dates', `https://www.expedia.com/Hotel-Search?destination=${encodeURIComponent(L.expediaDest)}&startDate=${ci}&endDate=${co}&adults=${AD}&rooms=${rooms}`, true],
+      ['Expedia — flight+hotel bundles', 'https://www.expedia.com/Vacation-Packages', false],
+      ['Costco Travel — all-inclusives', 'https://www.costcotravel.com/Vacation-Packages/All-Inclusive', false],
+      ['CheapCaribbean deals', 'https://www.cheapcaribbean.com/', false],
+      ['Priceline packages', 'https://www.priceline.com/vacation-packages/', false]
+    );
+  }
+  if (d.travel === 'fly' && L.code) {
+    const kidSeg = f1.kids > 0 ? `/${f1.kids}children` : '';
+    out.flights.push(
+      ['Google Flights', `https://www.google.com/travel/flights?q=${encodeURIComponent(`Flights from FLL to ${L.code} on ${ci} through ${co} for ${f1.adults} adults${f1.kids ? ' ' + f1.kids + ' children' : ''}`)}`, true],
+      ['Kayak', `https://www.kayak.com/flights/FLL-${L.code}/${ci}/${co}/${f1.adults}adults${kidSeg}?sort=bestflight_a`, true],
+      ['Priceline flights', `https://www.priceline.com/m/fly/search/FLL-${L.code}-${ciC}/${L.code}-FLL-${coC}/?num-adults=${f1.adults}`, true],
+      ['Southwest (2 free bags)', `https://www.southwest.com/air/booking/select.html?originationAirportCode=FLL&destinationAirportCode=${L.code}&departureDate=${ci}&returnDate=${co}&adultPassengersCount=${f1.adults}&tripType=roundtrip&passengerType=ADULT&fareType=USD`, true]
+    );
+  }
+  if (L.airbnb) {
+    out.houses.push(
+      ['Airbnb — big cabins, your dates', `https://www.airbnb.com/s/${L.airbnb}/homes?checkin=${ci}&checkout=${co}&adults=${AD}&children=${KD}&min_bedrooms=5`, true],
+      ['Vrbo — same search', `https://www.vrbo.com/search?destination=${encodeURIComponent(L.vrbo)}&startDate=${ci}&endDate=${co}&adults=${AD}`, true]
+    );
+  }
+  (L.resorts || []).forEach(r => out.resorts.push([r[0], r[1], false]));
+  return out;
+}
+
+/* ============================ render ============================ */
+const $ = id => document.getElementById(id);
+
+function renderSetup() {
+  $('checkin').value = S.checkin;
+  $('nightsNum').textContent = S.nights;
+  $('budget').value = S.budget;
+  const { co } = isoDates();
+  const opts = { weekday: 'short', month: 'short', day: 'numeric' };
+  const ciD = new Date(S.checkin + 'T12:00:00'), coD = new Date(co + 'T12:00:00');
+  $('dateHint').textContent = `${ciD.toLocaleDateString('en-US', opts)} → ${coD.toLocaleDateString('en-US', opts)} (checkout)`;
+  $('splitFam').setAttribute('aria-pressed', S.split === 'family');
+  $('splitHead').setAttribute('aria-pressed', S.split === 'head');
+
+  const grid = $('famGrid');
+  grid.innerHTML = '';
+  S.families.forEach((fam, i) => {
+    const card = document.createElement('div');
+    card.className = 'fam-card';
+    card.innerHTML = `
+      <input type="text" value="${esc(fam.name)}" aria-label="Family name" data-fi="${i}" data-k="name">
+      ${stepper(i, 'adults', 'Adults', fam.adults)}
+      ${stepper(i, 'kids', 'Kids', fam.kids)}
+      ${stepper(i, 'skiers', 'Skiers', fam.skiers)}`;
+    grid.appendChild(card);
+  });
+  const AD = S.families.reduce((a, f) => a + f.adults, 0);
+  const KD = S.families.reduce((a, f) => a + f.kids, 0);
+  const SK = S.families.reduce((a, f) => a + f.skiers, 0);
+  $('groupNote').innerHTML = `Group: <strong>${AD} adults + ${KD} kids = ${AD + KD} people</strong> across ${S.families.length} families · ${SK} skiing on snow trips · total budget pool ${fmt(3000 * S.families.length)}–${fmt(S.budget * S.families.length)}.`;
+}
+
+function stepper(i, k, label, val) {
+  return `<div class="steppers" style="margin-top:4px"><div class="stepper">
+    <button type="button" data-fi="${i}" data-k="${k}" data-d="-1" aria-label="Fewer ${label}">−</button>
+    <span class="num">${val}</span>
+    <button type="button" data-fi="${i}" data-k="${k}" data-d="1" aria-label="More ${label}">+</button>
+    <span>${label}</span></div></div>`;
+}
+
+function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;'); }
+
+let SCALE = 6500;
+function renderBoard() {
+  const board = $('board');
+  board.innerHTML = '';
+  const visible = DESTS.filter(d => S.filter === 'all' || d.type === S.filter);
+  const rows = visible.map(d => {
+    const costs = famCosts(d);
+    const max = Math.max(...costs.map(c => c.total));
+    return { d, costs, max };
+  });
+  SCALE = Math.max(6500, ...rows.map(r => r.max * 1.12));
+  rows.sort((a, b) => a.max - b.max);
+
+  rows.forEach(({ d, costs, max }) => {
+    const v = verdict(max);
+    const row = document.createElement('div');
+    row.className = 'dest-row';
+    const pct = Math.min(100, max / SCALE * 100);
+    const b3 = 3000 / SCALE * 100, b4 = S.budget / SCALE * 100;
+    const labelInside = pct > 82;
+    row.innerHTML = `
+      <button class="dest-btn" type="button" aria-expanded="${expanded === d.id}" data-dest="${d.id}">
+        <span>
+          <span class="d-name">${d.name}</span>
+          <span class="d-meta">${d.meta}<span class="caret">${expanded === d.id ? '▲ close' : '▼ details'}</span></span>
+        </span>
+        <span class="meter" data-tip="${d.id}">
+          <span class="band-label" style="left:${b3}%">$3k</span>
+          <span class="band-label" style="left:${b4}%">${fmt(S.budget).replace(',000', 'k')}</span>
+          <span class="track"></span>
+          <span class="bandzone" style="left:${b3}%; width:${Math.max(0, b4 - b3)}%"></span>
+          <span class="bar ${d.type}" style="width:${pct}%"></span>
+          <span class="val" style="${labelInside ? `right:${100 - pct}%; padding-right:6px; color:#fff` : `left:${pct}%; padding-left:6px`}">${fmt(max)}</span>
+        </span>
+        <span class="status ${v.cls}"><span class="dot"></span>${v.label}</span>
+      </button>
+      <div class="detail-slot"></div>`;
+    board.appendChild(row);
+    if (expanded === d.id) renderDetail(row.querySelector('.detail-slot'), d, costs);
+  });
+  $('axisNote').textContent = `Bars scaled 0 → ${fmt(SCALE)} · shaded band = your acceptable $3,000–${fmt(S.budget).slice(1)} per-family window · ${S.nights} nights from ${S.checkin}`;
+}
+
+const FIELD_LABELS = {
+  flightA: 'Flight rt / adult', flightK: 'Flight rt / kid',
+  aiA: 'All-incl. / adult / night', aiK: 'All-incl. / kid / night',
+  house: 'Whole house / night', carsGas: 'Gas+tolls rt / car', cars: '# cars driving',
+  liftDay: 'Lift ticket / day', rentDay: 'Ski rental / day', skiDays: 'Ski days',
+  foodDay: 'Food / person / day', rentalCarDay: 'Rental van / day', rentalCars: '# rental vans',
+  miscGroup: 'Extras, whole group'
+};
+const MONEY_FIELDS = new Set(['flightA','flightK','aiA','aiK','house','carsGas','liftDay','rentDay','foodDay','rentalCarDay','miscGroup']);
+
+function renderDetail(slot, d, costs) {
+  const f = fieldsFor(d);
+  const links = dealLinks(d);
+  const sh = shares();
+  const anySki = f.liftDay != null;
+  const grand = costs.reduce((a, c) => a + c.total, 0);
+
+  const famRows = costs.map((c, i) => {
+    const fam = S.families[i];
+    const over = c.total > S.budget;
+    return `<tr>
+      <td>${esc(fam.name)}</td><td>${fam.adults}A${fam.kids ? '+' + fam.kids + 'K' : ''}</td>
+      <td>${fmt(c.flights)}</td><td>${fmt(c.lodging)}</td>
+      ${anySki ? `<td>${fmt(c.ski)}</td>` : ''}
+      <td>${fmt(c.food + c.car + c.misc)}</td>
+      <td class="tot ${over ? 'over' : c.total <= 3000 ? 'underb' : ''}">${fmt(c.total)}</td>
+    </tr>`;
+  }).join('');
+
+  const fieldInputs = Object.keys(d.fields).map(k => `
+    <div class="field"><label for="f-${d.id}-${k}">${FIELD_LABELS[k] || k}</label>
+    <input type="number" id="f-${d.id}-${k}" data-dest="${d.id}" data-field="${k}" min="0" step="${MONEY_FIELDS.has(k) ? 5 : 1}" value="${f[k]}"></div>`).join('');
+
+  const linkGroup = (title, arr) => arr.length ? `<h3>${title}</h3><div class="links-grid">${arr.map(([label, url, pre]) =>
+    `<a class="deal-link" href="${url}" target="_blank" rel="noopener">${label}<span class="tag ${pre ? 'pre' : ''}">${pre ? 'pre-filled ↗' : 'opens site ↗'}</span></a>`).join('')}</div>` : '';
+
+  slot.innerHTML = `<div class="detail">
+    <div class="detail-cols">
+      <div>
+        <ul class="notes">${d.notes.map(n => `<li>${n}</li>`).join('')}</ul>
+        <div class="fam-costs">
+          <h3>Cost per family — ${S.nights} nights${anySki ? `, skiers as set above` : ''}</h3>
+          <div class="cost-table-wrap"><table class="costs">
+            <thead><tr><th>Family</th><th>Who</th><th>${d.travel === 'fly' ? 'Flights' : 'Gas'}</th><th>Lodging</th>${anySki ? '<th>Ski</th>' : ''}<th>Other</th><th>Total</th></tr></thead>
+            <tbody>${famRows}
+            <tr class="grand"><td>Whole group</td><td colspan="${anySki ? 5 : 4}" style="text-align:right; color:var(--ink-3)">split ${S.split === 'family' ? 'evenly by family' : 'by headcount'}</td><td class="tot">${fmt(grand)}</td></tr></tbody>
+          </table></div>
+        </div>
+        <div class="assump">
+          <h3>Assumptions — edit to match real quotes</h3>
+          <div class="assump-grid">${fieldInputs}</div>
+          <button class="mini-btn" type="button" data-restore="${d.id}">Restore researched defaults</button>
+        </div>
+      </div>
+      <div class="linkbox">
+        ${linkGroup('Packages & resorts', links.packages)}
+        ${linkGroup('Flights (per-family search)', links.flights)}
+        ${linkGroup('Cabins & houses (whole group)', links.houses)}
+        ${linkGroup('Book direct', links.resorts)}
+        <p class="hint" style="margin-top:10px">“Pre-filled” links open that site already loaded with your dates and party — compare live prices in one tap, then paste real quotes into the assumptions.</p>
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderTips() {
+  const half = Math.ceil(DEAL_TIPS.length / 2);
+  $('dealTips').innerHTML = [DEAL_TIPS.slice(0, half), DEAL_TIPS.slice(half)]
+    .map(col => `<ul>${col.map(([t, b]) => `<li><strong>${t}</strong> — ${b}</li>`).join('')}</ul>`).join('');
+  $('methodNote').innerHTML = `Baseline prices researched ${RESEARCH_DATE} for Dec 30 → Jan 3/4 travel; holiday weeks carry a 30–60% premium over normal winter rates, which is baked in. Expedia/Priceline don't offer public price APIs, so this planner can't scrape live fares — instead every destination links straight into pre-filled live searches, and every assumption is editable so the meters track real quotes as you collect them. Your edits stay in this browser only.`;
+}
+
+function renderAll() { renderSetup(); renderBoard(); renderTips(); save(); }
+
+/* ============================ events ============================ */
+document.addEventListener('click', e => {
+  const t = e.target.closest('button, a');
+  if (!t) return;
+
+  if (t.dataset.fi != null && t.dataset.d) {
+    const fam = S.families[+t.dataset.fi];
+    const k = t.dataset.k;
+    fam[k] = Math.max(0, (fam[k] || 0) + (+t.dataset.d));
+    if (k !== 'skiers') fam.skiers = Math.min(fam.skiers, fam.adults + fam.kids);
+    renderAll(); return;
+  }
+  if (t.id === 'nMinus' || t.id === 'nPlus') {
+    S.nights = Math.min(7, Math.max(3, S.nights + (t.id === 'nPlus' ? 1 : -1)));
+    renderAll(); return;
+  }
+  if (t.id === 'splitFam' || t.id === 'splitHead') {
+    S.split = t.id === 'splitFam' ? 'family' : 'head'; renderAll(); return;
+  }
+  if (t.classList.contains('chip-btn')) {
+    S.filter = t.dataset.f;
+    document.querySelectorAll('.chip-btn').forEach(b => b.setAttribute('aria-pressed', b === t));
+    renderBoard(); save(); return;
+  }
+  if (t.classList.contains('dest-btn')) {
+    const id = t.dataset.dest;
+    expanded = expanded === id ? null : id;
+    renderBoard(); return;
+  }
+  if (t.dataset.restore) {
+    delete S.overrides[t.dataset.restore];
+    renderAll(); return;
+  }
+  if (t.id === 'resetBtn') {
+    if (confirm('Reset dates, families, and all edited prices to the researched defaults?')) {
+      S = JSON.parse(JSON.stringify(DEFAULT_STATE)); expanded = null; renderAll();
+    }
+    return;
+  }
+  if (t.id === 'themeBtn') {
+    const r = document.documentElement;
+    const cur = r.getAttribute('data-theme') ||
+      (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    r.setAttribute('data-theme', cur === 'dark' ? 'light' : 'dark');
+    return;
+  }
+});
+
+document.addEventListener('input', e => {
+  const t = e.target;
+  if (t.id === 'checkin' && t.value) { S.checkin = t.value; renderAll(); }
+  else if (t.id === 'budget') { S.budget = Math.max(1000, +t.value || 4000); renderAll(); }
+  else if (t.dataset.field) {
+    const id = t.dataset.dest;
+    S.overrides[id] = S.overrides[id] || {};
+    S.overrides[id][t.dataset.field] = Math.max(0, +t.value || 0);
+    save();
+    // re-render without stealing focus from the input being typed in
+    const focusId = document.activeElement && document.activeElement.id;
+    renderBoard();
+    if (focusId) { const el = document.getElementById(focusId); if (el) el.focus(); }
+  }
+  else if (t.dataset.k === 'name') { S.families[+t.dataset.fi].name = t.value; save(); renderBoard(); }
+});
+
+/* tooltip: per-family totals on meter hover/focus */
+const tip = $('tip');
+document.addEventListener('pointermove', e => {
+  const m = e.target.closest('.meter');
+  if (!m) { tip.classList.remove('show'); return; }
+  const d = DESTS.find(x => x.id === m.dataset.tip);
+  if (!d) return;
+  const costs = famCosts(d);
+  tip.innerHTML = `<div class="t-title">${d.name}</div>` + costs.map((c, i) =>
+    `<div class="t-row"><span>${esc(S.families[i].name)}</span><b>${fmt(c.total)}</b></div>`).join('') +
+    `<div class="t-row" style="margin-top:4px; border-top:1px solid var(--hairline); padding-top:4px"><span>Whole group</span><b>${fmt(costs.reduce((a, c) => a + c.total, 0))}</b></div>`;
+  tip.classList.add('show');
+  const pad = 14;
+  let x = e.clientX + pad, y = e.clientY + pad;
+  const r = tip.getBoundingClientRect();
+  if (x + r.width > innerWidth - 8) x = e.clientX - r.width - pad;
+  if (y + r.height > innerHeight - 8) y = e.clientY - r.height - pad;
+  tip.style.left = x + 'px'; tip.style.top = y + 'px';
+});
+
+renderAll();
+</script>
+</body>
+</html>
