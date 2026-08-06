@@ -75,6 +75,24 @@ Grandparent couples (2 adults) run roughly 55–65% of the family-of-4 numbers e
 - **NC via CLT** — FLL→CLT $110–320 rt + minivan ~$350/5 days + 2h drive: saves ~9h each way
   vs driving for ~$1,000–1,600 more per family of 4.
 
+## Odds of natural snow on the ground at the cabin (New Year's)
+
+Slopes are white everywhere via snowmaking; these are the odds of a white yard, using
+Dec 25 ≥1" climatology (NOAA 1991–2020 normals + local records) as the proxy — New Year's
+runs similar or slightly better as winter deepens.
+
+| Destination | Odds | Notes |
+|---|---|---|
+| Mont-Tremblant, QC | **~90%+** | Laurentians: ~45" snow in December, 23 snowy days; Montréal alone is ~79% |
+| Snowshoe, WV (4,848 ft) | **~60–75%** | Snowiest pocket of the mid-Atlantic; Dec avg 30–44" |
+| Beech Mountain, NC (5,000+ ft) | **~40%** | Highest town in the eastern US; ~40% of Christmases see snowfall |
+| Banner Elk valley, NC (3,700 ft) | ~20–25% | Boone (3,300 ft) measures 19% for ≥1" on the ground |
+| Camelback/Poconos, PA (~2,000 ft) | ~20–30% | Real winters, but late-Dec thaws are common |
+| Gatlinburg, TN (1,300 ft) | **~10–20%** | ~1" avg December snow in town; Newfound Gap (5,046 ft) nearby approaches 50% |
+
+Practical lever in NC: booking the cabin **on Beech Mountain** instead of down in
+Banner Elk/Boone roughly doubles the white-yard odds at the same trip cost.
+
 ## Sources
 
 Beach: kayak.com (Bahia Principe Grand), priceoftravel.com (Cancun vs Punta Cana 2026),
