@@ -333,7 +333,7 @@
         <div class="hint">Comfort band $3,000–4,000 is shaded on every meter</div>
       </div>
       <div class="field">
-        <label>Split shared costs (house, cars, gas)</label>
+        <label>Split shared costs (house, rental vans, extras)</label>
         <div class="seg" role="group" aria-label="Cost split mode">
           <button type="button" id="splitFam" aria-pressed="true">Evenly by family</button>
           <button type="button" id="splitHead" aria-pressed="false">By headcount</button>
@@ -438,27 +438,27 @@ const DESTS = [
     ]
   },
   {
-    id: 'bannerelk', type: 'snow', travel: 'drive',
+    id: 'bannerelk', type: 'snow', travel: 'fly',
     name: 'Banner Elk, NC — Sugar & Beech Mountain',
-    meta: 'Drive ~790 mi (~11½–12h) · big cabin + ski',
-    fields: { carsGas: 260, cars: 3, house: 850, liftDay: 99, rentDay: 25, skiDays: 2, foodDay: 30, miscGroup: 300 },
+    meta: 'Fly FLL → CLT + 2h drive · big cabin + ski',
+    fields: { flightA: 220, flightK: 220, house: 850, liftDay: 99, rentDay: 25, skiDays: 2, foodDay: 30, rentalCarDay: 70, rentalCars: 2, miscGroup: 300 },
     notes: [
       '<strong>Snow around the cabin: ~20–25%</strong> in the Banner Elk valley, but <strong>roughly 40% if you book up on Beech Mountain itself</strong> (5,000+ ft, the highest town in the eastern US, with a village sledding hill) — pick the cabin\'s elevation to buy snow odds. Slopes are white regardless.',
-      '<strong>The budget king.</strong> No flights for 11 people — that alone saves $4,000–5,000 vs. any fly option.',
+      'Fly into Charlotte: Spirit runs FLL→CLT for $110–180 even at New Year\'s (AA $220–320), then it\'s a 2-hour drive up in the rental vans. Two minivans seat the whole group plus gear.',
       'Sugar Mountain\'s 2026–27 holiday prices are already posted: <strong>$99/day adult, $72 child 5–11, kids ≤4 just $4</strong>. Both mountains have 100% snowmaking — slopes are a near-lock for New Year\'s even if nothing natural falls.',
       '<strong>Rent gear at off-site shops in town</strong> (Ski Country Sports, Alpine Ski Center): $15–25/day vs $30–40 at the resort — saves the group $200+.',
       'A 5–6BR house sleeping 12–14 runs $600–1,000/night over New Year\'s ($2,800–4,400 for 4 nights with fees). One roof, one kitchen, cousins in bunk rooms.',
-      'Hate the drive? Fly FLL→Charlotte ($110–320 rt) + a minivan (~$350/5 days) and it\'s 2h from CLT — saves ~9 hours each way for about $1,000–1,600 more per family of 4.',
-      '<strong>Watch out:</strong> holiday-week crowds are heavy and only part of the mountain may be open after a warm spell. The 11½-hour drive means a 4am start or an overnight stop. Book the cabin by Sept–Oct — 12+ person inventory is thin.'
+      '<strong>Watch out:</strong> holiday-week crowds are heavy and only part of the mountain may be open after a warm spell. Ask for AWD or winter-rated vans — the last stretch is mountain road. Book the cabin by Sept–Oct — 12+ person inventory is thin.'
     ]
   },
   {
-    id: 'gatlinburg', type: 'snow', travel: 'drive',
+    id: 'gatlinburg', type: 'snow', travel: 'fly',
     name: 'Gatlinburg / Pigeon Forge, TN',
-    meta: 'Drive ~812 mi (~12½h) · cabin + Ober Mountain',
-    fields: { carsGas: 270, cars: 3, house: 950, liftDay: 95, rentDay: 25, skiDays: 2, foodDay: 30, miscGroup: 500 },
+    meta: 'Fly FLL → TYS + 1h drive · cabin + Ober Mountain',
+    fields: { flightA: 250, flightK: 250, house: 950, liftDay: 95, rentDay: 25, skiDays: 2, foodDay: 30, rentalCarDay: 70, rentalCars: 2, miscGroup: 500 },
     notes: [
       '<strong>Snow around the cabin: ~10–20% — the lowest on the board.</strong> Town sits at 1,300 ft and averages ~1" of snow all December. The snow fix: a 40-min drive up to Newfound Gap (5,046 ft) in the Smokies, where holiday snow odds approach 50%.',
+      'Allegiant flies FLL→Knoxville nonstop (~7×/week, December averages ~$253 round trip), and Gatlinburg is only an hour from the airport — the easiest fly-in of the mountain options.',
       '<strong>Most to do for non-skiers</strong>: Dollywood\'s Smoky Mountain Christmas (6M lights, ~$85–95/person online, ages ≤3 free), Ripley\'s Aquarium, SkyLift, the strip — grandparents and the little one stay busy.',
       'Ober Mountain is small (10 trails) and beginner-friendly — fine for kids and first-timers, thin for real skiers. Peak-day tickets $89–99; ages ≤4 free.',
       '<strong>Rent skis downtown, not on-mountain</strong> — on-site rental lines hit 2–3 hours on holiday peak days.',
@@ -467,15 +467,15 @@ const DESTS = [
     ]
   },
   {
-    id: 'snowshoe', type: 'snow', travel: 'drive',
+    id: 'snowshoe', type: 'snow', travel: 'fly',
     name: 'Snowshoe, WV',
-    meta: 'Drive ~975 mi (~15–16h) · best Southeast skiing',
-    fields: { carsGas: 330, cars: 3, house: 1200, liftDay: 129, rentDay: 40, skiDays: 2, foodDay: 35, miscGroup: 300 },
+    meta: 'Fly FLL → CLT + ~4h mountain drive · best SE skiing',
+    fields: { flightA: 220, flightK: 220, house: 1200, liftDay: 129, rentDay: 40, skiDays: 2, foodDay: 35, rentalCarDay: 75, rentalCars: 2, miscGroup: 300 },
     notes: [
-      '<strong>Snow around the cabin: ~60–75% — the best real-snow odds you can drive to.</strong> The village sits at 4,848 ft in the snowiest pocket of the mid-Atlantic; December alone averages 30–44" of natural snow.',
-      'Clearly the best skiing within driving distance — 60 trails, 1,500 ft vertical, ~180" natural snow vs Sugar\'s 20 slopes.',
+      '<strong>Snow around the cabin: ~60–75% — the best real-snow odds south of Canada.</strong> The village sits at 4,848 ft in the snowiest pocket of the mid-Atlantic; December alone averages 30–44" of natural snow.',
+      'The best skiing in the Southeast — 60 trails, 1,500 ft vertical, ~180" natural snow vs Sugar\'s 20 slopes.',
       'Holiday lift tickets ~$129/day online ($149 walk-up); village lodging for 12 runs $900–1,500/night with 4–5 night minimums over New Year\'s.',
-      '<strong>Watch out:</strong> the drive is 15–16 hours <em>each way</em> — with grandparents and a toddler in the caravan, that\'s the likely deal-breaker vs. NC. The last 2 hours are mountain roads.'
+      '<strong>Watch out:</strong> there is no close airport — Charlotte, Pittsburgh, and Dulles are all ~4 hours of mountain driving away, which is why Snowshoe rarely pencils for fly-in groups. The last 2 hours are winding mountain roads.'
     ]
   },
   {
@@ -514,11 +514,11 @@ const LINKS = {
   puntacana: { code: 'PUJ', expediaDest: 'Punta Cana (and vicinity), Dominican Republic' },
   cancun:    { code: 'CUN', expediaDest: 'Cancun (and vicinity), Quintana Roo, Mexico' },
   montego:   { code: 'MBJ', expediaDest: 'Montego Bay (and vicinity), Jamaica' },
-  bannerelk: { airbnb: 'Banner-Elk--NC--United-States', vrbo: 'Banner Elk, NC',
+  bannerelk: { code: 'CLT', airbnb: 'Banner-Elk--NC--United-States', vrbo: 'Banner Elk, NC',
                resorts: [['Sugar Mountain tickets', 'https://www.skisugar.com/'], ['Beech Mountain tickets', 'https://www.beechmountainresort.com/']] },
-  gatlinburg:{ airbnb: 'Gatlinburg--TN--United-States', vrbo: 'Gatlinburg, TN',
+  gatlinburg:{ code: 'TYS', airbnb: 'Gatlinburg--TN--United-States', vrbo: 'Gatlinburg, TN',
                resorts: [['Ober Mountain tickets', 'https://obermountain.com/'], ['Dollywood calendar', 'https://www.dollywood.com/']] },
-  snowshoe:  { airbnb: 'Snowshoe--WV--United-States', vrbo: 'Snowshoe, WV',
+  snowshoe:  { code: 'CLT', airbnb: 'Snowshoe--WV--United-States', vrbo: 'Snowshoe, WV',
                resorts: [['Snowshoe lodging + lifts', 'https://www.snowshoemtn.com/']] },
   camelback: { code: 'PHL', airbnb: 'Pocono-Mountains--PA--United-States', vrbo: 'Pocono Mountains, PA',
                resorts: [['Camelback Triple Ticket', 'https://www.camelbackresort.com/'], ['Camelback lodging', 'https://www.camelbackresort.com/stay/']] },

@@ -18,8 +18,11 @@ client-side and your edits persist in `localStorage` (per browser).
   budget ceiling, and how shared costs (house, cars, gas) get split: evenly by family or
   by headcount.
 - **Per-destination detail** — researched notes (what works, what to watch out for), a
-  per-family cost table, and every assumption (airfare, nightly rates, lift tickets, gas,
-  food…) editable so the meters track real quotes as you collect them.
+  per-family cost table, and every assumption (airfare, nightly rates, lift tickets,
+  rental vans, food…) editable so the meters track real quotes as you collect them.
+  All destinations price as fly-in (the family's preference); mountain trips include
+  rental vans from the gateway airport (CLT for Banner Elk/Snowshoe, TYS for Gatlinburg,
+  PHL for Camelback, YUL for Tremblant).
 - **Deal links** — one-tap links into Expedia, Kayak, Priceline, Google Flights, Southwest,
   Airbnb, and Vrbo **pre-filled with your dates and party size**, plus Costco Travel,
   CheapCaribbean, and book-direct resort sites.

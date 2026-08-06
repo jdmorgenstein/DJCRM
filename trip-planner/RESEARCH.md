@@ -75,6 +75,20 @@ Grandparent couples (2 adults) run roughly 55–65% of the family-of-4 numbers e
 - **NC via CLT** — FLL→CLT $110–320 rt + minivan ~$350/5 days + 2h drive: saves ~9h each way
   vs driving for ~$1,000–1,600 more per family of 4.
 
+## Fly-everywhere adjustment
+
+The family ruled out long drives, so the planner prices the mountain trips as
+fly + rental vans (2 minivans for the group, ~$70–75/day each):
+
+- **Banner Elk via CLT** — FLL→CLT $110–180 Spirit / $220–320 AA at New Year's *(est.)*,
+  then 2h drive. Family of 4 all-in moves ~$2,600 → **~$3,450** (still in budget).
+- **Gatlinburg via TYS** — Allegiant flies FLL→Knoxville nonstop ~7×/week; December
+  averages ~$253 rt. 1h drive from airport. Family of 4 → **~$3,700**.
+- **Snowshoe** — no close airport (CLT/PIT/IAD all ~4h of mountain driving); moves to
+  **~$4,250** and loses its case for a fly-in group.
+- Net effect on the rankings: **Camelback (PHL) becomes the cheapest snow option
+  (~$2,700)** and Punta Cana (~$3,200) beats the NC/TN mountains on price.
+
 ## Odds of natural snow on the ground at the cabin (New Year's)
 
 Slopes are white everywhere via snowmaking; these are the odds of a white yard, using
