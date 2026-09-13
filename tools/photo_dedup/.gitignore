@@ -1,0 +1,7 @@
+.venv/
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+report/
+staging/
+*.csv
