@@ -1,0 +1,3 @@
+Pillow>=10.0
+pillow-heif>=0.16      # HEIC/HEIF decoding -- required for iPhone originals
+numpy>=1.24            # optional: ~20x faster pHash; a pure-Python fallback exists
