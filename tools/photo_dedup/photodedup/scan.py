@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import sqlite3
+from collections import OrderedDict
 from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 from typing import Callable, Iterator
@@ -16,6 +17,10 @@ EXIFTOOL_BATCH = 400
 # Takeout ships these alongside the media; they are never photos.
 SKIP_NAMES = {"print-subscriptions.json", "shared_album_comments.json", "user-generated-memory-titles.json"}
 SKIP_DIRS = {".git", "__pycache__", ".photodedup"}
+
+
+def default_workers() -> int:
+    return min(8, os.cpu_count() or 2)
 
 
 def iter_media(root: Path) -> Iterator[Path]:
@@ -122,7 +127,7 @@ def scan_library(
         pending.append(path)
 
     exiftool = use_exiftool and metadata.exiftool_available()
-    workers = workers or min(8, (os.cpu_count() or 2))
+    workers = workers or default_workers()
     stats = {"total": total, "scanned": 0, "skipped": total - len(pending), "errors": 0}
 
     for batch in _chunks(pending, BATCH_SIZE):
@@ -161,7 +166,12 @@ def _fingerprint_batch(batch: list[Path], workers: int) -> list[dict]:
         return list(pool.map(fingerprint, [str(path) for path in batch], chunksize=8))
 
 
-_SIDECAR_CACHE: dict[Path, takeout.SidecarIndex] = {}
+# `iter_media` yields a directory's files contiguously, so a tiny cache gets
+# the full benefit.  It is bounded because a large Takeout has thousands of
+# directories and a year folder's index alone can hold tens of thousands of
+# sidecar paths.
+_SIDECAR_CACHE: OrderedDict[Path, takeout.SidecarIndex] = OrderedDict()
+_SIDECAR_CACHE_SIZE = 4
 
 
 def _apply_takeout(row: dict, path: Path, root: Path) -> None:
@@ -171,6 +181,10 @@ def _apply_takeout(row: dict, path: Path, root: Path) -> None:
     if index is None:
         index = takeout.SidecarIndex(directory)
         _SIDECAR_CACHE[directory] = index
+        while len(_SIDECAR_CACHE) > _SIDECAR_CACHE_SIZE:
+            _SIDECAR_CACHE.popitem(last=False)
+    else:
+        _SIDECAR_CACHE.move_to_end(directory)
 
     if directory != root:
         row["album"] = takeout.album_name(directory, index)

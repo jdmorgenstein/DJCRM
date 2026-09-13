@@ -68,9 +68,23 @@ class Options:
 
 
 class Library:
-    """In-memory, query-shaped view of one indexed library."""
+    """In-memory, query-shaped view of one indexed library.
 
-    def __init__(self, rows: list[sqlite3.Row], phash_bands: int, dhash_bands: int):
+    Two different blocking strategies, because the two perceptual tiers ask
+    different questions:
+
+    * Tier 4 already insists on an identical capture instant, so the capture
+      time *is* the blocking key -- an exact dict lookup returning a handful of
+      rows.  The perceptual hashes are then only a confirmation.
+    * Tier 5 has no capture time to lean on, so it needs a real near-neighbour
+      search.  That is what ``phash_index`` is for, and it is banded for the
+      strict tier-5 threshold rather than the looser tier-4 one: 64 bits over
+      five bands is ~13 bits per band, which stays selective at library scale.
+      Banding for a threshold of 6 would need seven bands of ~9 bits, i.e. 512
+      buckets, which at 100k+ photos degenerates into an all-pairs scan.
+    """
+
+    def __init__(self, rows: list[sqlite3.Row], phash_bands: int):
         self.rows = rows
         self.by_id = {row["id"]: row for row in rows}
         self.by_content_id: dict[str, list[sqlite3.Row]] = defaultdict(list)
@@ -79,9 +93,7 @@ class Library:
         self.by_local: dict[str, list[sqlite3.Row]] = defaultdict(list)
         self.by_utc: dict[int, list[sqlite3.Row]] = defaultdict(list)
         self.phash_bands = phash_bands
-        self.dhash_bands = dhash_bands
         self.phash_index: dict[tuple[int, int], list[sqlite3.Row]] = defaultdict(list)
-        self.dhash_index: dict[tuple[int, int], list[sqlite3.Row]] = defaultdict(list)
 
         for row in rows:
             if row["content_id"]:
@@ -97,27 +109,43 @@ class Library:
             if row["phash"] is not None:
                 for key in bands(row["phash"], phash_bands):
                     self.phash_index[key].append(row)
-            if row["dhash"] is not None:
-                for key in bands(row["dhash"], dhash_bands):
-                    self.dhash_index[key].append(row)
+
+    def capture_candidates(self, row: sqlite3.Row, tolerance: int) -> dict[int, sqlite3.Row]:
+        """Rows captured at the same instant as ``row``."""
+        found: dict[int, sqlite3.Row] = {}
+        if row["capture_local"]:
+            for candidate in self.by_local.get(row["capture_local"], ()):
+                found[candidate["id"]] = candidate
+        utc = row["capture_utc"]
+        if utc:
+            for offset in range(-tolerance, tolerance + 1):
+                for candidate in self.by_utc.get(utc + offset, ()):
+                    found[candidate["id"]] = candidate
+        return found
 
     def perceptual_candidates(self, row: sqlite3.Row) -> dict[int, sqlite3.Row]:
-        """Rows sharing at least one hash band -- an exact candidate superset."""
+        """Rows sharing a phash band -- an exact superset for STRICT_PHASH_THRESHOLD.
+
+        Pigeonhole: with ``STRICT_PHASH_THRESHOLD + 1`` bands, any row within
+        that Hamming distance must match a whole band, so nothing is missed.
+        There is deliberately no dHash index: ``scan`` computes both hashes
+        together or neither, so a dHash band adds no reachable candidate, and
+        at the tier-5 threshold its bands would be ~5 bits wide -- 32 buckets,
+        which blocks nothing and costs a great deal.
+        """
         found: dict[int, sqlite3.Row] = {}
         if row["phash"] is not None:
             for key in bands(row["phash"], self.phash_bands):
                 for candidate in self.phash_index.get(key, ()):
                     found[candidate["id"]] = candidate
-        if row["dhash"] is not None:
-            for key in bands(row["dhash"], self.dhash_bands):
-                for candidate in self.dhash_index.get(key, ()):
-                    found[candidate["id"]] = candidate
         return found
 
 
 def load_library(connection: sqlite3.Connection, library: str, options: Options) -> Library:
+    """Load one library.  Banding is fixed by STRICT_PHASH_THRESHOLD, so raising
+    ``--phash-threshold`` widens tier 4's tolerance without touching index size."""
     rows = list(connection.execute(f"SELECT {FIELDS} FROM media WHERE library = ?", (library,)))
-    return Library(rows, options.phash_threshold + 1, options.dhash_threshold + 1)
+    return Library(rows, STRICT_PHASH_THRESHOLD + 1)
 
 
 def same_instant(google: sqlite3.Row, icloud: sqlite3.Row, tolerance: int) -> bool | None:
@@ -202,13 +230,14 @@ def match_one(google: sqlite3.Row, icloud: Library, options: Options) -> Match:
     if google["kind"] == "video":
         return _match_video(google, icloud, options)
 
-    # Tiers 4 and 5 both need perceptual candidates.
-    candidates = icloud.perceptual_candidates(google)
-
     # Tier 4: same capture instant, corroborated perceptually.  This is the
-    # workhorse for HEIC->JPEG and "Storage saver" re-encodes.
+    # workhorse for HEIC->JPEG and "Storage saver" re-encodes.  Candidates come
+    # from the capture-time index, not the perceptual one: the tier requires an
+    # identical instant anyway, and an exact lookup stays fast at any scale.
     best: tuple[int, sqlite3.Row] | None = None
-    for candidate in candidates.values():
+    for candidate in icloud.capture_candidates(google, options.time_tolerance).values():
+        if candidate["kind"] != "image":
+            continue
         if same_instant(google, candidate, options.time_tolerance) is not True:
             continue
         if not cameras_agree(google, candidate) or not bursts_agree(google, candidate):
@@ -236,7 +265,9 @@ def match_one(google: sqlite3.Row, icloud: Library, options: Options) -> Match:
     # Tier 5: perceptual evidence alone.  Held for review by default.
     near: tuple[int, int, sqlite3.Row] | None = None
     conflicts = 0
-    for candidate in candidates.values():
+    for candidate in icloud.perceptual_candidates(google).values():
+        if candidate["kind"] != "image":
+            continue
         if same_instant(google, candidate, options.time_tolerance) is False:
             continue
         if not cameras_agree(google, candidate) or not bursts_agree(google, candidate):
@@ -271,6 +302,8 @@ def _capture_only_match(google: sqlite3.Row, icloud: Library, options: Options) 
     if google["capture_ms"] is None or not google["capture_local"]:
         return None
     for candidate in icloud.by_local.get(google["capture_local"], ()):
+        if candidate["kind"] != google["kind"]:
+            continue  # a still is never a duplicate of a clip taken at the same instant
         if candidate["capture_ms"] != google["capture_ms"]:
             continue
         if not cameras_agree(google, candidate) or not bursts_agree(google, candidate):

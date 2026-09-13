@@ -1,5 +1,6 @@
 """Command line interface.
 
+    photodedup doctor --icloud ~/export/icloud --google ~/export/takeout
     photodedup index  --library icloud --root ~/export/icloud
     photodedup index  --library google --root ~/export/takeout --takeout
     photodedup match
@@ -15,7 +16,7 @@ import shlex
 import sys
 from pathlib import Path
 
-from . import __version__, db, matching, metadata, report, scan
+from . import __version__, db, matching, metadata, preflight, report, scan
 
 DEFAULT_DB = "photodedup.sqlite"
 
@@ -161,6 +162,27 @@ def cmd_plan(args: argparse.Namespace) -> int:
     return 0
 
 
+_LEVEL_MARK = {preflight.OK: "ok  ", preflight.WARN: "warn", preflight.FAIL: "FAIL"}
+
+
+def cmd_doctor(args: argparse.Namespace) -> int:
+    def expand(value: str | None) -> Path | None:
+        return Path(value).expanduser() if value else None
+
+    checks = preflight.run(
+        expand(args.icloud), expand(args.google), expand(args.staging),
+        args.workers or scan.default_workers(),
+    )
+    for check in checks:
+        print(f"[{_LEVEL_MARK[check.level]}] {check.title:<18} {check.detail}")
+
+    failures = sum(check.level == preflight.FAIL for check in checks)
+    warnings = sum(check.level == preflight.WARN for check in checks)
+    print()
+    print(f"{failures} blocking, {warnings} worth a look")
+    return 1 if failures else 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="photodedup",
@@ -211,6 +233,14 @@ def build_parser() -> argparse.ArgumentParser:
     plan_parser.add_argument("--rebuild-albums", action="store_true",
                              help="match `stage --rebuild-albums`; adds --dup-albums")
     plan_parser.set_defaults(func=cmd_plan)
+
+    doctor = subparsers.add_parser("doctor", help="check tooling, sizes and Takeout completeness")
+    doctor.add_argument("--icloud", help="iCloud export directory")
+    doctor.add_argument("--google", help="Takeout 'Google Photos' directory")
+    doctor.add_argument("--staging", help="where the staging tree will be written")
+    doctor.add_argument("--workers", type=int, default=0,
+                        help="workers to assume for the time estimate (default: CPU count)")
+    doctor.set_defaults(func=cmd_doctor)
 
     return parser
 

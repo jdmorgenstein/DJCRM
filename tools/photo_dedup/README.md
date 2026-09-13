@@ -157,6 +157,12 @@ and HEIC is what your iPhone shoots. Install it.
 ```bash
 export PYTHONPATH=$PWD
 
+# 0. Check the tooling, the sizes, and whether the Takeout is complete.
+python -m photodedup doctor \
+    --icloud ~/export/icloud \
+    --google "~/export/Takeout/Google Photos" \
+    --staging ~/export/staging
+
 # 1. Fingerprint both libraries (slow, resumable, re-runnable).
 python -m photodedup index --library icloud --root ~/export/icloud
 python -m photodedup index --library google --root "~/export/Takeout/Google Photos" --takeout
@@ -173,6 +179,12 @@ python -m photodedup stage --out ~/export/staging --rebuild-albums
 # 5. Print the import commands.
 python -m photodedup plan --staging ~/export/staging --rebuild-albums
 ```
+
+`doctor` is worth running before anything else on a large library. It catches
+the failures that waste an overnight run: no HEIC decoder, a disk that cannot
+hold the staging tree, and — the one that actually bites — a Takeout where not
+every archive part was extracted. A partial extract makes whole albums look
+unique, and you would import thousands of duplicates before noticing.
 
 ### What step 3 gives you
 
@@ -254,8 +266,9 @@ photodedup/
   scan.py        parallel library walk
   matching.py    the cascade, and the guards that keep bursts intact
   report.py      CSV reports, grouping, staging
+  preflight.py   `doctor`: tooling, sizes, disk, Takeout completeness
   cli.py         command line
-tests/           28 tests, including a full synthetic migration
+tests/           40 tests, including a full synthetic migration
 ```
 
 Run the tests with:
@@ -271,10 +284,34 @@ each, dominated by full-resolution decoding and the pixel hash. On 8 cores that
 is roughly 45 minutes for 100k photos — once, since `index` is resumable and
 skips unchanged files on re-runs. HEIC decoding is slower than JPEG.
 
-Matching itself takes seconds. The perceptual lookup uses a banded index whose
-candidate set is provably exact for the configured threshold (pigeonhole: split
-a 64-bit hash into *t+1* bands, and any pair within Hamming distance *t* must
-share a whole band), so it never degrades into an all-pairs comparison.
+Matching a 120k iCloud library against a 150k Takeout takes **18 seconds** and
+peaks at **550 MB** — measured on synthetic rows with no matches at all, which
+is the worst case, since every row then falls through every tier.
 
-Memory during `match` is one row per iCloud photo held in RAM — on the order of
-a few hundred MB for 200k photos.
+Getting there needed care, because the obvious design does not scale. Candidate
+generation is split by tier:
+
+* **Tier 4 blocks on capture time.** It insists on an identical capture instant
+  anyway, so the timestamp is the natural key: an exact dict lookup returning a
+  handful of rows, with the perceptual hashes used only as confirmation.
+* **Tier 5 blocks on banded pHash**, because it has no capture time to lean on.
+  Pigeonhole: split a 64-bit hash into *t+1* bands and any pair within Hamming
+  distance *t* must share a whole band, so the candidate set is exact.
+
+The subtlety is that *t* has to be the strict tier-5 threshold (4 → five bands
+of ~13 bits → 36k buckets, ~16 rows each). Banding for the looser tier-4
+threshold of 6 would need seven bands of ~9 bits, i.e. at most 512 buckets; at
+120k photos every bucket is full, the index stops filtering, and matching
+collapses into an all-pairs scan. There is no dHash index at all: `scan`
+computes both hashes together or neither, so dHash bands reach no candidate
+pHash bands miss, and at this threshold they would be ~5 bits wide. Raising
+`--phash-threshold` now widens tier 4's tolerance without touching index size.
+
+### Disk
+
+Budget for the whole iCloud library plus the whole Takeout on one filesystem.
+For 100k photos that is realistically 600 GB – 1 TB, and an external SSD is the
+comfortable answer. Staging itself is free — it hard-links — but only when the
+staging tree sits on the same filesystem as the Takeout; across a boundary it
+falls back to copying, which doubles the Takeout's footprint. `doctor
+--staging` reports the worst case.
