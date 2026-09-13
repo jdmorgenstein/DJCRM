@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import functools
 import os
 import sqlite3
 from collections import OrderedDict
@@ -36,8 +37,15 @@ def iter_media(root: Path) -> Iterator[Path]:
             yield directory / name
 
 
-def fingerprint(path_text: str) -> dict:
-    """Compute every content signal for one file.  Runs in a worker process."""
+def fingerprint(path_text: str, quick: bool = False) -> dict:
+    """Compute content signals for one file.  Runs in a worker process.
+
+    ``quick`` skips decoding the image, which is ~90% of the cost.  It still
+    yields the file hash and (with exiftool) the capture metadata, which is
+    everything tiers 1 and 2 need -- and at Original-quality backup those two
+    tiers resolve the bulk of a library on their own.  Whatever they cannot
+    resolve is decoded later by ``--upgrade``.
+    """
     path = Path(path_text)
     row: dict = {"path": str(path), "error": None}
     try:
@@ -52,6 +60,13 @@ def fingerprint(path_text: str) -> dict:
     kind = metadata.media_kind(path)
     row["kind"] = kind
     if kind != "image":
+        return row
+
+    if quick:
+        # Metadata still comes back: Image.open reads the header and EXIF
+        # without decoding pixels, and the Apple ContentIdentifier that tier 1
+        # runs on lives in EXIF.  Only the decode is skipped.
+        _apply_metadata(row, metadata.extract_with_pillow(path), overwrite=False)
         return row
 
     try:
@@ -101,21 +116,27 @@ def scan_library(
     use_exiftool: bool = True,
     resume: bool = True,
     read_takeout: bool = False,
+    quick: bool = False,
+    only_paths: set[str] | None = None,
     progress: Callable[[int, int], None] | None = None,
 ) -> dict[str, int]:
     """Index every media file under ``root`` as ``library``.
 
     ``read_takeout`` turns on Google Takeout sidecar and album resolution.
+    ``quick`` skips image decoding; ``only_paths`` restricts the walk to a
+    named set, which is how ``--upgrade`` re-visits just the unresolved files.
     """
     root = root.resolve()
     _SIDECAR_CACHE.clear()
     files = list(iter_media(root))
     total = len(files)
+    if only_paths is not None:
+        files = [path for path in files if str(path) in only_paths]
 
     seen = db.known_paths(connection, library) if resume else {}
     pending: list[Path] = []
     for path in files:
-        if resume:
+        if resume and only_paths is None:
             previous = seen.get(str(path))
             if previous is not None:
                 try:
@@ -131,7 +152,7 @@ def scan_library(
     stats = {"total": total, "scanned": 0, "skipped": total - len(pending), "errors": 0}
 
     for batch in _chunks(pending, BATCH_SIZE):
-        rows = _fingerprint_batch(batch, workers)
+        rows = _fingerprint_batch(batch, workers, quick)
 
         if exiftool:
             for sub in _chunks(batch, EXIFTOOL_BATCH):
@@ -159,11 +180,82 @@ def scan_library(
     return stats
 
 
-def _fingerprint_batch(batch: list[Path], workers: int) -> list[dict]:
+def _fingerprint_batch(batch: list[Path], workers: int, quick: bool = False) -> list[dict]:
     if workers <= 1 or len(batch) == 1:
-        return [fingerprint(str(path)) for path in batch]
+        return [fingerprint(str(path), quick) for path in batch]
+    worker = functools.partial(fingerprint, quick=quick)
     with ProcessPoolExecutor(max_workers=workers) as pool:
-        return list(pool.map(fingerprint, [str(path) for path in batch], chunksize=8))
+        return list(pool.map(worker, [str(path) for path in batch], chunksize=8))
+
+
+# A --quick pass leaves images without pixel or perceptual hashes.  Only some of
+# them ever need one, and which ones depends on how each remaining tier finds
+# its candidates.
+_UNRESOLVED_GOOGLE = """
+    SELECT g.id, g.path, g.capture_local, g.capture_utc, g.width, g.height
+    FROM media g
+    LEFT JOIN matches m ON m.google_id = g.id
+    WHERE g.library = 'google' AND g.kind = 'image' AND g.error IS NULL
+      AND (m.confidence IS NULL OR m.confidence IN ('unique', 'review'))
+"""
+
+
+def paths_needing_upgrade(
+    connection: sqlite3.Connection, library: str, *, thorough: bool = False
+) -> set[str]:
+    """Files a --quick pass left unfingerprinted that the match still needs.
+
+    Every unresolved Google image needs decoding.  Which *iCloud* photos need
+    decoding follows from the tiers that are still in play:
+
+    * tier 4 blocks on capture time, so an iCloud photo sharing a capture
+      instant with an unresolved Google file is a candidate;
+    * tier 5 needs perceptual hashes on both sides, and only ever applies to
+      photos with no capture time at all;
+    * tier 3 compares decoded pixels and ignores capture time entirely -- but
+      the pixel hash includes the dimensions, so it can only match an iCloud
+      photo of exactly the same size as some unresolved Google file.
+
+    The dimension clause deliberately covers *every* unresolved Google file,
+    not just the ones missing a capture time.  Takeout supplies a capture time
+    from the JSON sidecar even when it stripped the EXIF, so "has no capture
+    time" does not identify the files tier 3 exists for, and using it as the
+    predicate silently skips them.
+
+    Tiers 3 and 4 are therefore covered exactly.  Tier 5 is not: it tolerates a
+    rescale, so a downscaled counterpart has a different size and would not be
+    selected.  Tier 5 only ever produces review-queue entries, so the cost is a
+    possible duplicate to eyeball, never a lost photo -- and ``thorough``
+    decodes every remaining iCloud image if you would rather rule it out.
+    """
+    unresolved = list(connection.execute(_UNRESOLVED_GOOGLE))
+
+    if library == "google":
+        have = {
+            row["path"] for row in connection.execute(
+                "SELECT path FROM media WHERE library = 'google' AND pixel_sha256 IS NOT NULL"
+            )
+        }
+        return {row["path"] for row in unresolved} - have
+
+    locals_ = {row["capture_local"] for row in unresolved if row["capture_local"]}
+    utcs = {row["capture_utc"] for row in unresolved if row["capture_utc"]}
+    sizes = {(row["width"], row["height"]) for row in unresolved if row["width"]}
+
+    wanted = set()
+    for row in connection.execute(
+        "SELECT path, capture_local, capture_utc, width, height FROM media "
+        "WHERE library = 'icloud' AND kind = 'image' AND pixel_sha256 IS NULL AND error IS NULL"
+    ):
+        if thorough:
+            wanted.add(row["path"])
+        elif row["capture_local"] is None and row["capture_utc"] is None:
+            wanted.add(row["path"])
+        elif row["capture_local"] in locals_ or row["capture_utc"] in utcs:
+            wanted.add(row["path"])
+        elif (row["width"], row["height"]) in sizes:
+            wanted.add(row["path"])
+    return wanted
 
 
 # `iter_media` yields a directory's files contiguously, so a tiny cache gets

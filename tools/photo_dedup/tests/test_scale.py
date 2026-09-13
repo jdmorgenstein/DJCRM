@@ -135,3 +135,180 @@ class CaptureBlockingTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class QuickPassTests(unittest.TestCase):
+    """A --quick pass, then `match`, then --upgrade only what is left."""
+
+    def setUp(self):
+        import shutil
+        from photodedup import report, scan
+        from . import helpers
+
+        self._tmp = tempfile.TemporaryDirectory()
+        self.root = Path(self._tmp.name)
+        self.addCleanup(self._tmp.cleanup)
+        self.scan, self.helpers, self.report = scan, helpers, report
+
+        self.icloud = self.root / "icloud"
+        self.google = self.root / "google"
+        self.google.mkdir(parents=True, exist_ok=True)
+
+        # 1: shared, carries an Apple ContentIdentifier -> tier 1, no decode.
+        helpers.write_jpeg(self.icloud / "IMG_1.jpg", helpers.make_photo(1, size=(400, 300)),
+                           exif=helpers.build_exif(content_id="CID-1"))
+        helpers.write_jpeg(self.google / "IMG_1.jpg", helpers.make_photo(1, size=(400, 300)), quality=70,
+                           exif=helpers.build_exif(content_id="CID-1"))
+        # 2: shared, byte-identical -> tier 2, no decode.
+        helpers.write_jpeg(self.icloud / "IMG_2.jpg", helpers.make_photo(2, size=(410, 300)),
+                           exif=helpers.build_exif(capture="2023:01:02 03:04:05", subsec="200"))
+        shutil.copy2(self.icloud / "IMG_2.jpg", self.google / "IMG_2.jpg")
+        # 3: shared, metadata stripped -> needs the decoded-pixel hash.
+        helpers.write_jpeg(self.icloud / "IMG_3.jpg", helpers.make_photo(3, size=(420, 300)),
+                           exif=helpers.build_exif(capture="2023:03:04 05:06:07", subsec="300"))
+        helpers.write_jpeg(self.google / "IMG_3.jpg", helpers.make_photo(3, size=(420, 300)), quality=95)
+        # 4: Google only.
+        helpers.write_jpeg(self.google / "IMG_4.jpg", helpers.make_photo(4, size=(430, 300)),
+                           exif=helpers.build_exif(capture="2023:05:06 07:08:09", subsec="400"))
+
+        self.connection = db.connect(self.root / "i.sqlite")
+
+    def quick_index(self):
+        for library, root in (("icloud", self.icloud), ("google", self.google)):
+            self.scan.scan_library(self.connection, root, library, workers=1,
+                                   use_exiftool=False, quick=True)
+
+    def confidences(self):
+        return {
+            row["filename"]: row["confidence"]
+            for row in self.connection.execute(
+                "SELECT g.filename, m.confidence FROM matches m JOIN media g ON g.id = m.google_id"
+            )
+        }
+
+    def test_quick_pass_decodes_nothing(self):
+        self.quick_index()
+        decoded = self.connection.execute(
+            "SELECT COUNT(*) AS n FROM media WHERE pixel_sha256 IS NOT NULL").fetchone()["n"]
+        self.assertEqual(decoded, 0)
+        hashed = self.connection.execute(
+            "SELECT COUNT(*) AS n FROM media WHERE file_sha256 IS NOT NULL").fetchone()["n"]
+        self.assertEqual(hashed, 7)
+
+    def test_content_id_and_file_hash_resolve_without_decoding(self):
+        self.quick_index()
+        matching.run(self.connection, matching.Options())
+        found = self.confidences()
+        self.assertEqual(found["IMG_1.jpg"], matching.CERTAIN)
+        self.assertEqual(found["IMG_2.jpg"], matching.CERTAIN)
+        # These two could not be settled without pixels.
+        self.assertEqual(found["IMG_3.jpg"], matching.UNIQUE)
+        self.assertEqual(found["IMG_4.jpg"], matching.UNIQUE)
+
+    def test_upgrade_only_touches_what_the_match_could_not_resolve(self):
+        self.quick_index()
+        matching.run(self.connection, matching.Options())
+
+        google_pending = self.scan.paths_needing_upgrade(self.connection, "google")
+        self.assertEqual({Path(p).name for p in google_pending}, {"IMG_3.jpg", "IMG_4.jpg"})
+
+        icloud_pending = self.scan.paths_needing_upgrade(self.connection, "icloud")
+        # Tier 3 blocks on dimensions, so only iCloud photos the size of an
+        # unresolved Google file are selected.  IMG_1 and IMG_2 are settled and
+        # a different size, so they are never decoded.
+        self.assertEqual({Path(p).name for p in icloud_pending}, {"IMG_3.jpg"})
+
+        thorough = self.scan.paths_needing_upgrade(self.connection, "icloud", thorough=True)
+        self.assertEqual({Path(p).name for p in thorough},
+                         {"IMG_1.jpg", "IMG_2.jpg", "IMG_3.jpg"})
+
+    def test_upgrade_then_rematch_resolves_the_residue(self):
+        self.quick_index()
+        matching.run(self.connection, matching.Options())
+        for library, root in (("icloud", self.icloud), ("google", self.google)):
+            pending = self.scan.paths_needing_upgrade(self.connection, library)
+            self.scan.scan_library(self.connection, root, library, workers=1,
+                                   use_exiftool=False, only_paths=pending)
+        matching.run(self.connection, matching.Options())
+
+        found = self.confidences()
+        self.assertEqual(found["IMG_3.jpg"], matching.CERTAIN)
+        self.assertEqual(found["IMG_4.jpg"], matching.UNIQUE)
+        # IMG_1/IMG_2 were never decoded, on either side.
+        never = self.connection.execute(
+            "SELECT COUNT(*) AS n FROM media WHERE pixel_sha256 IS NULL").fetchone()["n"]
+        self.assertEqual(never, 4)
+
+
+class TwoPassEquivalenceTests(unittest.TestCase):
+    """--quick then --upgrade must reach the same verdicts as a full index.
+
+    This is the acceptance test for the optimisation. An earlier version of the
+    upgrade selection used "has no capture time" to find the files tier 3 exists
+    for, which silently skipped every metadata-stripped file, because Takeout
+    supplies a capture time from the JSON sidecar even when it stripped the EXIF.
+    Twenty duplicates went undetected and only a run like this one caught it.
+    """
+
+    def _verdicts(self, connection):
+        return {
+            row["path"]: (row["confidence"], row["tier"])
+            for row in connection.execute(
+                "SELECT g.path, m.confidence, m.tier FROM matches m "
+                "JOIN media g ON g.id = m.google_id"
+            )
+        }
+
+    def test_two_pass_matches_a_full_index(self):
+        import shutil
+        from PIL import Image
+        from photodedup import scan
+        from . import helpers
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            icloud, google = root / "icloud", root / "google" / "Photos from 2023"
+            google.mkdir(parents=True)
+
+            for i in range(9):
+                photo = helpers.make_photo(i, size=(640, 480))
+                exif = helpers.build_exif(capture=f"2023:05:{i + 1:02d} 10:00:00",
+                                          subsec=f"{i}00", content_id=f"CID-{i}")
+                helpers.write_jpeg(icloud / f"IMG_{i}.jpg", photo, exif=exif)
+                if i % 3 == 0:                        # byte-identical
+                    shutil.copy2(icloud / f"IMG_{i}.jpg", google / f"IMG_{i}.jpg")
+                elif i % 3 == 1:                      # metadata stripped
+                    helpers.write_jpeg(google / f"IMG_{i}.jpg", photo, quality=95)
+                else:                                 # re-encoded, EXIF kept
+                    helpers.write_jpeg(google / f"IMG_{i}.jpg",
+                                       photo.resize((320, 240), Image.Resampling.LANCZOS),
+                                       quality=50, exif=exif)
+                # Takeout hands back a capture time even where EXIF was stripped.
+                helpers.write_sidecar(google / f"IMG_{i}.jpg.supplemental-metadata.json",
+                                      title=f"IMG_{i}.jpg", taken=1683000000 + i)
+            helpers.write_jpeg(google / "only-google.jpg", helpers.make_photo(99, size=(640, 480)),
+                               exif=helpers.build_exif(capture="2023:09:09 09:09:09", subsec="900"))
+
+            options = matching.Options()
+            full_db = db.connect(root / "full.sqlite")
+            for library, path, takeout in (("icloud", icloud, False), ("google", google, True)):
+                scan.scan_library(full_db, path, library, workers=1, use_exiftool=False,
+                                  read_takeout=takeout)
+            matching.run(full_db, options)
+
+            quick_db = db.connect(root / "quick.sqlite")
+            for library, path, takeout in (("icloud", icloud, False), ("google", google, True)):
+                scan.scan_library(quick_db, path, library, workers=1, use_exiftool=False,
+                                  read_takeout=takeout, quick=True)
+            matching.run(quick_db, options)
+            for library, path, takeout in (("icloud", icloud, False), ("google", google, True)):
+                pending = scan.paths_needing_upgrade(quick_db, library)
+                scan.scan_library(quick_db, path, library, workers=1, use_exiftool=False,
+                                  read_takeout=takeout, only_paths=pending)
+            matching.run(quick_db, options)
+
+            full, two_pass = self._verdicts(full_db), self._verdicts(quick_db)
+
+        self.assertEqual(len(full), 10)
+        self.assertEqual(two_pass, full)
+        self.assertEqual(sum(1 for c, _ in full.values() if c == matching.UNIQUE), 1)

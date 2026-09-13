@@ -112,6 +112,52 @@ the `photoslibrary.readonly` scope was removed and now returns
   them, falling back to the `title` field inside each sidecar, which names the
   media file authoritatively.
 
+### Why not an API?
+
+Worth stating plainly, because it is the obvious first question and the answer
+is no on both sides.
+
+**Reading from Google.** Three routes, none of them usable:
+
+* **Library API** — the `photoslibrary.readonly`, `photoslibrary.sharing` and
+  `photoslibrary` scopes were removed on 31 March 2025; calls relying on them
+  return `403 PERMISSION_DENIED`. An app can now only see media it uploaded
+  itself.
+* **Picker API** — the official replacement, but it is a *picker*: the user
+  selects items in a Google-hosted dialog, and there is no library enumeration.
+  Worse for this job, the `=d` download parameter does not give you the file
+  you put in. GPS is deliberately withheld, other metadata is missing, and the
+  returned image is reported to be a mutated re-encode. That strips precisely
+  the signals deduplication depends on — the Apple `ContentIdentifier`, the
+  EXIF capture instant, and pixel-exactness. An API-based pipeline would be
+  *worse* at this than Takeout, not just slower.
+* **Data Portability API** — real, and the right shape (initiate an archive
+  job, poll, download signed URLs). But Google Photos is not one of its
+  supported products. The only photo-ish scope is
+  `dataportability.maps.photos_videos`, which is your Maps contributions.
+
+**Writing to iCloud.** There is no public API at all. CloudKit cannot reach the
+user's photo library, and PhotoKit is an on-device framework, not a web
+service. Any import has to run locally on a Mac or iPhone — which is exactly
+what `osxphotos` does under the hood.
+
+### The official Google → iCloud transfer
+
+Apple and Google do run a direct transfer, built on the Data Transfer Project.
+It is genuinely useful, but not for this goal:
+
+* everything lands in **one album** called "Import from Google" — your album
+  structure is not preserved;
+* **Live Photos and Motion Photos are not transferred**;
+* the documented duplicate protection covers *retrying a failed transfer*
+  ("if you receive a storage error ... the additional transfer request won't
+  add duplicate files"). It is not documented to dedupe against photos already
+  in your library, which is the entire problem here;
+* it is not reversible at scale.
+
+If albums and Live Photos did not matter, it would be the easy answer. They are
+the reason this tool exists.
+
 ### iCloud → disk
 
 **With a Mac (strongly preferred).** In Photos, turn on
@@ -185,6 +231,40 @@ the failures that waste an overnight run: no HEIC decoder, a disk that cannot
 hold the staging tree, and — the one that actually bites — a Takeout where not
 every archive part was extracted. A partial extract makes whole albums look
 unique, and you would import thousands of duplicates before noticing.
+
+### Faster: the two-pass route
+
+Most of the cost is decoding images. But tiers 1 and 2 — Apple
+`ContentIdentifier` and file hash — need no pixels at all, only the file bytes
+and EXIF. On an Original-quality backup those two tiers settle most of a
+library, so there is no reason to decode it all up front:
+
+```bash
+python -m photodedup index --library icloud --root ~/export/icloud --quick
+python -m photodedup index --library google --root "~/.../Google Photos" --takeout --quick
+python -m photodedup match                      # how much overlaps, in minutes not hours
+python -m photodedup index --library icloud --root ~/export/icloud --upgrade
+python -m photodedup index --library google --root "~/.../Google Photos" --takeout --upgrade
+python -m photodedup match                      # final verdicts
+```
+
+Measured on 12 MP JPEGs averaging 5.8 MB: **243 files/second/core quick versus
+3.7 full**, and the quick pass still reads the `ContentIdentifier` on every
+file. In practice it is I/O bound, not CPU bound — it reads and hashes every
+byte once.
+
+`--upgrade` then decodes only what the match could not settle: every unresolved
+Google file, and on the iCloud side only the photos the surviving tiers can
+actually reach — those sharing a capture instant with an unresolved file, those
+with no capture time at all, and those matching the dimensions of an unresolved
+file whose metadata was stripped.
+
+Tiers 1 through 4 come out identical to a full index — there is a test that
+asserts exactly that. The one gap is tier 5, which tolerates a rescale, so a
+downscaled counterpart has different dimensions and would not be selected for
+decoding. Tier 5 only ever produces review-queue entries, so the cost is a
+possible duplicate to eyeball, never a lost photo. `--upgrade --thorough`
+decodes every remaining image if you would rather rule it out.
 
 ### What step 3 gives you
 
@@ -268,7 +348,7 @@ photodedup/
   report.py      CSV reports, grouping, staging
   preflight.py   `doctor`: tooling, sizes, disk, Takeout completeness
   cli.py         command line
-tests/           40 tests, including a full synthetic migration
+tests/           45 tests, including a full synthetic migration
 ```
 
 Run the tests with:
@@ -279,10 +359,13 @@ python -m unittest discover -s tests -t .
 
 ### Performance
 
-Measured on 12 MP (4032×3024) JPEGs: **~4.8 files/second/core**, about 210 ms
-each, dominated by full-resolution decoding and the pixel hash. On 8 cores that
-is roughly 45 minutes for 100k photos — once, since `index` is resumable and
-skips unchanged files on re-runs. HEIC decoding is slower than JPEG.
+Measured on 12 MP (4032×3024) JPEGs: **3.7–4.8 files/second/core** for a full
+index, dominated by full-resolution decoding and the pixel hash; **243
+files/second/core** for a `--quick` pass, which is I/O bound instead. On 8
+cores a 100k library is roughly an hour fully indexed, or about twenty minutes
+quick — and the two-pass route above pays the full cost only on the residue.
+`index` is resumable and skips unchanged files on re-runs. HEIC decoding is
+slower than JPEG.
 
 Matching a 120k iCloud library against a 150k Takeout takes **18 seconds** and
 peaks at **550 MB** — measured on synthetic rows with no matches at all, which

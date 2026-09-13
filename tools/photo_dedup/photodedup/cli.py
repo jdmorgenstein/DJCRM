@@ -40,6 +40,14 @@ def cmd_index(args: argparse.Namespace) -> int:
         if total:
             print(f"\r  {done}/{total} files", end="", flush=True)
 
+    only_paths = None
+    if args.upgrade:
+        only_paths = scan.paths_needing_upgrade(connection, args.library, thorough=args.thorough)
+        if not only_paths:
+            print(f"{args.library}: nothing left to upgrade")
+            return 0
+        print(f"{args.library}: fully fingerprinting {len(only_paths)} unresolved files")
+
     stats = scan.scan_library(
         connection,
         root,
@@ -48,6 +56,8 @@ def cmd_index(args: argparse.Namespace) -> int:
         use_exiftool=use_exiftool,
         resume=not args.rescan,
         read_takeout=args.takeout,
+        quick=args.quick and not args.upgrade,
+        only_paths=only_paths,
         progress=None if args.quiet else progress,
     )
     if not args.quiet:
@@ -56,6 +66,9 @@ def cmd_index(args: argparse.Namespace) -> int:
         f"{args.library}: {stats['total']} media files, {stats['scanned']} indexed, "
         f"{stats['skipped']} unchanged, {stats['errors']} errors"
     )
+    if args.quick and not args.upgrade:
+        print("  quick pass: no images decoded. Run `match`, then re-run with "
+              "--upgrade to decode only what it could not resolve.")
     return 0
 
 
@@ -200,6 +213,17 @@ def build_parser() -> argparse.ArgumentParser:
     index.add_argument("--workers", type=int, default=0, help="worker processes (default: CPU count)")
     index.add_argument("--no-exiftool", action="store_true", help="use Pillow only")
     index.add_argument("--rescan", action="store_true", help="re-fingerprint unchanged files")
+    index.add_argument("--quick", action="store_true",
+                       help="skip image decoding: file hash and capture metadata only. "
+                            "Enough for the Apple ContentIdentifier and file-hash tiers, "
+                            "which resolve most of an Original-quality library, and about "
+                            "10x faster. Follow with `match`, then --upgrade.")
+    index.add_argument("--upgrade", action="store_true",
+                       help="fully fingerprint only the files a --quick pass plus `match` "
+                            "left unresolved")
+    index.add_argument("--thorough", action="store_true",
+                       help="with --upgrade, decode every remaining image rather than only "
+                            "the ones the surviving tiers can reach")
     index.add_argument("--quiet", action="store_true")
     index.set_defaults(func=cmd_index)
 
