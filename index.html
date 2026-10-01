@@ -1,0 +1,37 @@
+<!DOCTYPE html><html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Artist Brand Playbook</title>
+<meta name="description" content="Playbook and workbook for building a music artist brand.">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#0e0f13">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Playbook">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" href="icon-192.png">
+<link rel="stylesheet" href="style.css">
+</head><body>
+<div id="app">
+ <header id="bar">
+  <span class="brand">Artist Brand Playbook</span>
+  <span class="sp"></span>
+  <button id="exp" class="mini">Export</button>
+  <button id="imp" class="mini">Import</button>
+ </header>
+ <nav id="tabs">
+  <button id="tab_home">Progress</button>
+  <button id="tab_phase">Phase</button>
+  <button id="tab_book">Brand book</button>
+  <button id="tab_ref">Reference</button>
+ </nav>
+ <main id="stage"></main>
+ <div id="boot"><p>Loading…</p></div>
+</div>
+<div id="printarea"></div>
+<div id="toast"></div>
+<input type="file" id="fi" accept="application/json,.json" hidden>
+<noscript><p style="padding:24px;font:16px system-ui">This app needs JavaScript enabled.</p></noscript>
+<script src="app.js"></script>
+</body></html>
